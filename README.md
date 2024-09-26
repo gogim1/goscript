@@ -1,0 +1,1 @@
+**GoScript** is a dynamically typed functional programming language.
