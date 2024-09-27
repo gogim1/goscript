@@ -31,10 +31,10 @@ func (l *lexer) nextToken() (Token, *file.Error) {
 		tokenLocation := l.currLocation
 		src := []rune("")
 		currChar := l.source[l.currIndex]
-		if unicode.IsDigit(currChar) || currChar == '-' || currChar == '+' {
+		if unicode.IsDigit(currChar) || strings.ContainsRune("-+", currChar) {
 			for l.currIndex < len(l.source) {
 				currChar = l.source[l.currIndex]
-				if unicode.IsDigit(currChar) || currChar == '-' || currChar == '+' || currChar == '.' || currChar == '/' {
+				if unicode.IsDigit(currChar) || strings.ContainsRune("-+./", currChar) {
 					src = append(src, currChar)
 					l.currLocation.Update(currChar)
 					l.currIndex++
@@ -45,6 +45,53 @@ func (l *lexer) nextToken() (Token, *file.Error) {
 			if !numberRegexp.MatchString(string(src)) {
 				return Token{}, &file.Error{Location: tokenLocation, Message: "invalid number literal"}
 			}
+		} else if unicode.IsLetter(currChar) {
+			for l.currIndex < len(l.source) {
+				currChar = l.source[l.currIndex]
+				if unicode.IsLetter(currChar) || unicode.IsDigit(currChar) || currChar == '_' {
+					src = append(src, currChar)
+					l.currLocation.Update(currChar)
+					l.currIndex++
+				} else {
+					break
+				}
+			}
+		} else if strings.ContainsRune("(){}[]=@&", currChar) {
+			src = append(src, currChar)
+			l.currLocation.Update(currChar)
+			l.currIndex++
+		} else if currChar == '"' {
+			src = append(src, currChar)
+			l.currLocation.Update(currChar)
+			l.currIndex++
+			for l.currIndex < len(l.source) {
+				currChar = l.source[l.currIndex]
+				if currChar != '"' || (currChar == '"' && countTrailingEscape(src)%2 != 0) {
+					src = append(src, currChar)
+					l.currLocation.Update(currChar)
+					l.currIndex++
+				} else {
+					break
+				}
+			}
+			if l.currIndex < len(l.source) && currChar == '"' {
+				src = append(src, currChar)
+				l.currLocation.Update(currChar)
+				l.currIndex++
+			} else {
+				return Token{}, &file.Error{Location: tokenLocation, Message: "incomplete string literal"}
+			}
+		} else if currChar == '#' {
+			for l.currIndex < len(l.source) {
+				currChar = l.source[l.currIndex]
+				if currChar != '\n' {
+					l.currLocation.Update(currChar)
+					l.currIndex++
+				} else {
+					break
+				}
+			}
+			return l.nextToken()
 		} else {
 			return Token{}, &file.Error{Location: l.currLocation, Message: "unsupported token starting character"}
 		}
