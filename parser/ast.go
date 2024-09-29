@@ -12,195 +12,195 @@ type ExprNode interface {
 	SetLocation(file.SourceLocation)
 }
 
-type base struct {
-	location file.SourceLocation
+type Base struct {
+	Location file.SourceLocation
 }
 
-func (n *base) GetLocation() file.SourceLocation {
-	return n.location
+func (n *Base) GetLocation() file.SourceLocation {
+	return n.Location
 }
 
-func (n *base) SetLocation(sl file.SourceLocation) {
-	n.location = sl
+func (n *Base) SetLocation(sl file.SourceLocation) {
+	n.Location = sl
 }
 
 type NumberNode struct {
-	base
-	numerator   int
-	denominator int
+	Base
+	Numerator   int
+	Denominator int
 }
 
 func NewNumberNode(sl file.SourceLocation, n, d int) *NumberNode {
 	g := gcd(int(math.Abs(float64(n))), d)
 	node := &NumberNode{
-		base:        base{location: sl},
-		numerator:   n / g,
-		denominator: d / g,
+		Base:        Base{Location: sl},
+		Numerator:   n / g,
+		Denominator: d / g,
 	}
 	return node
 }
 
 type StringNode struct {
-	base
-	value string
+	Base
+	Value []rune
 }
 
-func NewStringNode(sl file.SourceLocation, v string) *StringNode {
+func NewStringNode(sl file.SourceLocation, v []rune) *StringNode {
 	node := &StringNode{
-		base:  base{location: sl},
-		value: v,
+		Base:  Base{Location: sl},
+		Value: v,
 	}
 	return node
 }
 
 type IntrinsicNode struct {
-	base
-	name string
+	Base
+	Name []rune
 }
 
-func NewIntrinsicNode(sl file.SourceLocation, n string) *IntrinsicNode {
+func NewIntrinsicNode(sl file.SourceLocation, n []rune) *IntrinsicNode {
 	node := &IntrinsicNode{
-		base: base{location: sl},
-		name: n,
+		Base: Base{Location: sl},
+		Name: n,
 	}
 	return node
 }
 
 type VariableNode struct {
-	base
-	name string
+	Base
+	Name []rune
 }
 
 func (n *VariableNode) IsLex() bool {
-	return unicode.IsLower([]rune(n.name)[0])
+	return unicode.IsLower(n.Name[0])
 }
 
 func (n *VariableNode) IsDyn() bool {
-	return unicode.IsUpper([]rune(n.name)[0])
+	return unicode.IsUpper(n.Name[0])
 }
 
-func NewVariableNode(sl file.SourceLocation, n string) *VariableNode {
+func NewVariableNode(sl file.SourceLocation, n []rune) *VariableNode {
 	node := &VariableNode{
-		base: base{location: sl},
-		name: n,
+		Base: Base{Location: sl},
+		Name: n,
 	}
 	return node
 }
 
 type LambdaNode struct {
-	base
-	varList []ExprNode
-	expr    ExprNode
+	Base
+	VarList []ExprNode
+	Expr    ExprNode
 }
 
 func NewLambdaNode(sl file.SourceLocation, vl []ExprNode, e ExprNode) *LambdaNode {
 	node := &LambdaNode{
-		base:    base{location: sl},
-		varList: vl,
-		expr:    e,
+		Base:    Base{Location: sl},
+		VarList: vl,
+		Expr:    e,
 	}
 	return node
 }
 
 type LetrecVarExprItem struct {
-	variable VariableNode
-	expr     ExprNode
+	Variable VariableNode
+	Expr     ExprNode
 }
 
 func NewLetrecVarExprItem(v VariableNode, e ExprNode) *LetrecVarExprItem {
 	node := &LetrecVarExprItem{
-		variable: v,
-		expr:     e,
+		Variable: v,
+		Expr:     e,
 	}
 	return node
 }
 
 type LetrecNode struct {
-	base
-	varExprList []LetrecVarExprItem
-	expr        ExprNode
+	Base
+	VarExprList []LetrecVarExprItem
+	Expr        ExprNode
 }
 
 func NewLetrecNode(sl file.SourceLocation, vel []LetrecVarExprItem, e ExprNode) *LetrecNode {
 	node := &LetrecNode{
-		base:        base{location: sl},
-		varExprList: vel,
-		expr:        e,
+		Base:        Base{Location: sl},
+		VarExprList: vel,
+		Expr:        e,
 	}
 	return node
 }
 
 type IfNode struct {
-	base
-	cond    ExprNode
-	branch1 ExprNode
-	branch2 ExprNode
+	Base
+	Cond    ExprNode
+	Branch1 ExprNode
+	Branch2 ExprNode
 }
 
 func NewIfNode(sl file.SourceLocation, c, b1, b2 ExprNode) *IfNode {
 	node := &IfNode{
-		base:    base{location: sl},
-		cond:    c,
-		branch1: b1,
-		branch2: b2,
+		Base:    Base{Location: sl},
+		Cond:    c,
+		Branch1: b1,
+		Branch2: b2,
 	}
 	return node
 }
 
 type CallNode struct {
-	base
-	callee  ExprNode
-	argList []ExprNode
+	Base
+	Callee  ExprNode
+	ArgList []ExprNode
 }
 
 func NewCallNode(sl file.SourceLocation, c ExprNode, al []ExprNode) *CallNode {
 	node := &CallNode{
-		base:    base{location: sl},
-		callee:  c,
-		argList: al,
+		Base:    Base{Location: sl},
+		Callee:  c,
+		ArgList: al,
 	}
 	return node
 }
 
 type SequenceNode struct {
-	base
-	exprList []ExprNode
+	Base
+	ExprList []ExprNode
 }
 
 func NewSequenceNode(sl file.SourceLocation, el []ExprNode) *SequenceNode {
 	node := &SequenceNode{
-		base:     base{location: sl},
-		exprList: el,
+		Base:     Base{Location: sl},
+		ExprList: el,
 	}
 	return node
 }
 
 type QueryNode struct {
-	base
-	variable VariableNode
-	exprBox  []ExprNode
+	Base
+	Variable VariableNode
+	ExprBox  []ExprNode
 }
 
 func NewQueryNode(sl file.SourceLocation, v VariableNode, eb []ExprNode) *QueryNode {
 	node := &QueryNode{
-		base:     base{location: sl},
-		variable: v,
-		exprBox:  eb,
+		Base:     Base{Location: sl},
+		Variable: v,
+		ExprBox:  eb,
 	}
 	return node
 }
 
 type AccessNode struct {
-	base
-	variable VariableNode
-	expr     ExprNode
+	Base
+	Variable VariableNode
+	Expr     ExprNode
 }
 
 func NewAccessNode(sl file.SourceLocation, v VariableNode, e ExprNode) *AccessNode {
 	node := &AccessNode{
-		base:     base{location: sl},
-		variable: v,
-		expr:     e,
+		Base:     Base{Location: sl},
+		Variable: v,
+		Expr:     e,
 	}
 	return node
 }

@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"reflect"
 	"strings"
 	"unicode"
 
@@ -9,7 +10,7 @@ import (
 
 type Token struct {
 	Location file.SourceLocation
-	Source   string
+	Source   file.Source
 }
 
 type lexer struct {
@@ -29,7 +30,7 @@ func (l *lexer) nextToken() (Token, *file.Error) {
 	}
 	if l.currIndex < len(l.source) {
 		tokenLocation := l.currLocation
-		src := []rune("")
+		src := file.NewSource("")
 		currChar := l.source[l.currIndex]
 		if unicode.IsDigit(currChar) || strings.ContainsRune("-+", currChar) {
 			for l.currIndex < len(l.source) {
@@ -95,7 +96,7 @@ func (l *lexer) nextToken() (Token, *file.Error) {
 		} else {
 			return Token{}, &file.Error{Location: l.currLocation, Message: "unsupported token starting character"}
 		}
-		return Token{Location: tokenLocation, Source: string(src)}, nil
+		return Token{Location: tokenLocation, Source: src}, nil
 	} else {
 		return eof, nil
 	}
@@ -121,7 +122,7 @@ func Lex(source file.Source) ([]Token, *file.Error) {
 		if err != nil {
 			return nil, err
 		}
-		if token == eof {
+		if reflect.DeepEqual(token, eof) {
 			break
 		} else {
 			tokens = append(tokens, token)
