@@ -42,10 +42,10 @@ func NewNumberNode(sl file.SourceLocation, n, d int) *NumberNode {
 
 type StringNode struct {
 	Base
-	Value []rune
+	Value file.Source
 }
 
-func NewStringNode(sl file.SourceLocation, v []rune) *StringNode {
+func NewStringNode(sl file.SourceLocation, v file.Source) *StringNode {
 	node := &StringNode{
 		Base:  Base{Location: sl},
 		Value: v,
@@ -55,10 +55,10 @@ func NewStringNode(sl file.SourceLocation, v []rune) *StringNode {
 
 type IntrinsicNode struct {
 	Base
-	Name []rune
+	Name file.Source
 }
 
-func NewIntrinsicNode(sl file.SourceLocation, n []rune) *IntrinsicNode {
+func NewIntrinsicNode(sl file.SourceLocation, n file.Source) *IntrinsicNode {
 	node := &IntrinsicNode{
 		Base: Base{Location: sl},
 		Name: n,
@@ -68,7 +68,7 @@ func NewIntrinsicNode(sl file.SourceLocation, n []rune) *IntrinsicNode {
 
 type VariableNode struct {
 	Base
-	Name []rune
+	Name file.Source
 }
 
 func (n *VariableNode) IsLex() bool {
@@ -79,7 +79,7 @@ func (n *VariableNode) IsDyn() bool {
 	return unicode.IsUpper(n.Name[0])
 }
 
-func NewVariableNode(sl file.SourceLocation, n []rune) *VariableNode {
+func NewVariableNode(sl file.SourceLocation, n file.Source) *VariableNode {
 	node := &VariableNode{
 		Base: Base{Location: sl},
 		Name: n,
@@ -89,11 +89,11 @@ func NewVariableNode(sl file.SourceLocation, n []rune) *VariableNode {
 
 type LambdaNode struct {
 	Base
-	VarList []ExprNode
+	VarList []*VariableNode
 	Expr    ExprNode
 }
 
-func NewLambdaNode(sl file.SourceLocation, vl []ExprNode, e ExprNode) *LambdaNode {
+func NewLambdaNode(sl file.SourceLocation, vl []*VariableNode, e ExprNode) *LambdaNode {
 	node := &LambdaNode{
 		Base:    Base{Location: sl},
 		VarList: vl,
@@ -103,11 +103,11 @@ func NewLambdaNode(sl file.SourceLocation, vl []ExprNode, e ExprNode) *LambdaNod
 }
 
 type LetrecVarExprItem struct {
-	Variable VariableNode
+	Variable *VariableNode
 	Expr     ExprNode
 }
 
-func NewLetrecVarExprItem(v VariableNode, e ExprNode) *LetrecVarExprItem {
+func newLetrecVarExprItem(v *VariableNode, e ExprNode) *LetrecVarExprItem {
 	node := &LetrecVarExprItem{
 		Variable: v,
 		Expr:     e,
@@ -117,11 +117,11 @@ func NewLetrecVarExprItem(v VariableNode, e ExprNode) *LetrecVarExprItem {
 
 type LetrecNode struct {
 	Base
-	VarExprList []LetrecVarExprItem
+	VarExprList []*LetrecVarExprItem
 	Expr        ExprNode
 }
 
-func NewLetrecNode(sl file.SourceLocation, vel []LetrecVarExprItem, e ExprNode) *LetrecNode {
+func NewLetrecNode(sl file.SourceLocation, vel []*LetrecVarExprItem, e ExprNode) *LetrecNode {
 	node := &LetrecNode{
 		Base:        Base{Location: sl},
 		VarExprList: vel,
@@ -177,11 +177,11 @@ func NewSequenceNode(sl file.SourceLocation, el []ExprNode) *SequenceNode {
 
 type QueryNode struct {
 	Base
-	Variable VariableNode
+	Variable *VariableNode
 	ExprBox  []ExprNode
 }
 
-func NewQueryNode(sl file.SourceLocation, v VariableNode, eb []ExprNode) *QueryNode {
+func NewQueryNode(sl file.SourceLocation, v *VariableNode, eb []ExprNode) *QueryNode {
 	node := &QueryNode{
 		Base:     Base{Location: sl},
 		Variable: v,
@@ -192,11 +192,11 @@ func NewQueryNode(sl file.SourceLocation, v VariableNode, eb []ExprNode) *QueryN
 
 type AccessNode struct {
 	Base
-	Variable VariableNode
+	Variable *VariableNode
 	Expr     ExprNode
 }
 
-func NewAccessNode(sl file.SourceLocation, v VariableNode, e ExprNode) *AccessNode {
+func NewAccessNode(sl file.SourceLocation, v *VariableNode, e ExprNode) *AccessNode {
 	node := &AccessNode{
 		Base:     Base{Location: sl},
 		Variable: v,

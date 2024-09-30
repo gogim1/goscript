@@ -142,5 +142,4 @@ func TestLex_error(t *testing.T) {
 			assert.NotNil(t, err)
 		})
 	}
-
 }
