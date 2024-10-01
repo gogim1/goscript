@@ -239,6 +239,16 @@ func (p *parser) parseIntrinsic() (*IntrinsicNode, *file.Error) {
 	if err != nil {
 		return nil, err
 	}
+	isIntrinsic := false
+	for _, kw := range intrinsics {
+		if reflect.DeepEqual(file.NewSource(kw), currToken.Source) {
+			isIntrinsic = true
+			break
+		}
+	}
+	if !isIntrinsic {
+		return nil, &file.Error{Location: currToken.Location, Message: "incorrect intrinsic"}
+	}
 	return NewIntrinsicNode(currToken.Location, currToken.Source), nil
 }
 
@@ -363,18 +373,7 @@ func (p *parser) parseExpr() (ExprNode, *file.Error) {
 	} else if currToken.Source.String() == "if" {
 		return p.parseIf()
 	} else if len(currToken.Source) > 0 && unicode.IsLetter(currToken.Source[0]) {
-		isIntrinsic := false
-		for _, kw := range intrinsics {
-			if reflect.DeepEqual(file.NewSource(kw), currToken.Source) {
-				isIntrinsic = true
-				break
-			}
-		}
-		if isIntrinsic {
-			return p.parseIntrinsic()
-		} else {
-			return p.parseVariable()
-		}
+		return p.parseVariable()
 	} else if currToken.Source.String() == "(" {
 		return p.parseCall()
 	} else if currToken.Source.String() == "[" {

@@ -61,13 +61,6 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			`callcc`,
-			&IntrinsicNode{
-				Base: Base{Location: file.SourceLocation{Line: 1, Col: 1}},
-				Name: file.NewSource("callcc"),
-			},
-		},
-		{
 			`lambda () { 1 }`,
 			&LambdaNode{
 				Base:    Base{Location: file.SourceLocation{Line: 1, Col: 1}},
@@ -247,6 +240,7 @@ func TestParse_error(t *testing.T) {
 			assert.Nil(t, err)
 			_, err = Parse(tokens)
 			assert.NotNil(t, err)
+			t.Log(err)
 		})
 	}
 }
