@@ -173,6 +173,17 @@ func TestParse(t *testing.T) {
 				},
 			},
 		},
+		{
+			`(user_defined_function)`,
+			&CallNode{
+				Base:    Base{Location: file.SourceLocation{Line: 1, Col: 1}},
+				ArgList: []ExprNode{},
+				Callee: &VariableNode{
+					Base: Base{Location: file.SourceLocation{Line: 1, Col: 2}},
+					Name: file.NewSource("user_defined_function"),
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
