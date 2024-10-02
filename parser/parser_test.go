@@ -192,7 +192,7 @@ func TestParse(t *testing.T) {
 			node, err := Parse(tokens)
 			assert.Nil(t, err)
 
-			assert.Equal(t, node, test.node)
+			assert.Equal(t, test.node, node)
 		})
 	}
 }

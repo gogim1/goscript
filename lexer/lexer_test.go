@@ -115,7 +115,7 @@ func TestLex(t *testing.T) {
 			tokens, err := Lex(file.NewSource(test.input))
 			assert.Nil(t, err)
 
-			assert.Equal(t, tokens, test.tokens)
+			assert.Equal(t, test.tokens, tokens)
 		})
 	}
 }

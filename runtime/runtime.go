@@ -45,7 +45,7 @@ func (s *state) Execute() *file.Error {
 			s.value = NewStringValue(expr.Value.String())
 			s.stack = s.stack[:len(s.stack)-1]
 		case *parser.LetrecNode:
-			if 1 < l.pc && l.pc <= len(expr.VarExprList) {
+			if 1 < l.pc && l.pc <= len(expr.VarExprList)+1 {
 				v := expr.VarExprList[l.pc-2].Variable
 				lastLocation := s.lookupEnv(v.Name.String(), l.env)
 				if lastLocation == -1 {
@@ -105,8 +105,21 @@ func (s *state) Execute() *file.Error {
 			} else {
 				s.stack = s.stack[:len(s.stack)-1]
 			}
+		case *parser.VariableNode:
+			location := s.lookupEnv(expr.Name.String(), l.env)
+			if location == -1 {
+				return &file.Error{
+					Location: expr.GetLocation(),
+					Message:  "undefined variable",
+				}
+			}
+			s.value = s.store[location]
+			s.stack = s.stack[:len(s.stack)-1]
 		default:
-			return &file.Error{Location: expr.GetLocation(), Message: "unrecognized AST node"}
+			return &file.Error{
+				Location: expr.GetLocation(),
+				Message:  "unrecognized AST node",
+			}
 		}
 	}
 }

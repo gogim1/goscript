@@ -17,6 +17,9 @@ func TestRuntime(t *testing.T) {
 		{`10/5`, `2`},
 		{`letrec () {1.1}`, `11/10`},
 		{`letrec (a=1 b=2) {"hello world"}`, `hello world`},
+		{`letrec (a=1 b=2) {a}`, `1`},
+		{`letrec (a=1 b="2") { letrec() {b} }`, `2`},
+		{`letrec (a=1 b="2") { letrec(a=3) {a} }`, `3`},
 		{`if 1 then 2 else 3`, `2`},
 	}
 	for _, test := range tests {
@@ -29,7 +32,7 @@ func TestRuntime(t *testing.T) {
 
 			state := NewState(node)
 			assert.Nil(t, state.Execute())
-			assert.Equal(t, state.Value(), test.value)
+			assert.Equal(t, test.value, state.Value())
 		})
 	}
 }
