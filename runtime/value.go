@@ -73,9 +73,14 @@ func NewStringValue(s string) *String {
 	}
 }
 
+type envItem struct {
+	name     string
+	location int
+}
+
 type Closure struct {
 	Base
-	Env map[string]int
+	Env []envItem
 	Fun *parser.LambdaNode
 }
 
@@ -83,7 +88,7 @@ func (v *Closure) String() string {
 	return fmt.Sprintf("<closure evaluated at %s>", v.Fun.Location.Format())
 }
 
-func NewClosureValue(env map[string]int, fun *parser.LambdaNode) *Closure {
+func NewClosureValue(env []envItem, fun *parser.LambdaNode) *Closure {
 	return &Closure{
 		Env: env,
 		Fun: fun,

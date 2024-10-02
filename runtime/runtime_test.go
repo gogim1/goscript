@@ -14,6 +14,8 @@ func TestRuntime(t *testing.T) {
 		input, value string
 	}{
 		{`10/5`, `2`},
+		{`letrec () {1.1}`, `11/10`},
+		{`letrec (a=1 b=2) {"hello world"}`, `hello world`},
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
