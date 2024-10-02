@@ -7,6 +7,7 @@ import (
 	"github.com/gogim1/goscript/lexer"
 	"github.com/gogim1/goscript/parser"
 	. "github.com/gogim1/goscript/runtime"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRuntime(t *testing.T) {
@@ -16,27 +17,37 @@ func TestRuntime(t *testing.T) {
 		{`10/5`, `2`},
 		{`letrec () {1.1}`, `11/10`},
 		{`letrec (a=1 b=2) {"hello world"}`, `hello world`},
+		{`if 1 then 2 else 3`, `2`},
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
 			tokens, err := lexer.Lex(file.NewSource(test.input))
-			if err != nil {
-				t.Errorf("%s:\n%v", test.input, err)
-				return
-			}
+			assert.Nil(t, err)
+
 			node, err := parser.Parse(tokens)
-			if err != nil {
-				t.Errorf("%s:\n%v", test.input, err)
-				return
-			}
+			assert.Nil(t, err)
+
 			state := NewState(node)
-			if err := state.Execute(); err != nil {
-				t.Errorf("%s:\n%v", test.input, err)
-				return
-			}
-			if state.Value() != test.value {
-				t.Errorf("%s:\ngot\n\t%+v\nexpected\n\t%+v", test.input, state.Value(), test.value)
-			}
+			assert.Nil(t, state.Execute())
+			assert.Equal(t, state.Value(), test.value)
+		})
+	}
+}
+
+func TestRuntime_error(t *testing.T) {
+	tests := []string{
+		`if "true" then 2 else 3`,
+	}
+	for _, test := range tests {
+		t.Run(test, func(t *testing.T) {
+			tokens, err := lexer.Lex(file.NewSource(test))
+			assert.Nil(t, err)
+
+			node, err := parser.Parse(tokens)
+			assert.Nil(t, err)
+
+			state := NewState(node)
+			assert.NotNil(t, state.Execute())
 		})
 	}
 }

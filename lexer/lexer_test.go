@@ -1,8 +1,6 @@
 package lexer_test
 
 import (
-	"reflect"
-	"strconv"
 	"testing"
 
 	"github.com/gogim1/goscript/file"
@@ -115,13 +113,9 @@ func TestLex(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
 			tokens, err := Lex(file.NewSource(test.input))
-			if err != nil {
-				t.Errorf("%s:\n%v", strconv.Quote(test.input), err)
-				return
-			}
-			if !reflect.DeepEqual(tokens, test.tokens) {
-				t.Errorf("%s:\ngot\n\t%+v\nexpected\n\t%+v", test.input, tokens, test.tokens)
-			}
+			assert.Nil(t, err)
+
+			assert.Equal(t, tokens, test.tokens)
 		})
 	}
 }

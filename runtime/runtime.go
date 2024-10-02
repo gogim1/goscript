@@ -77,6 +77,34 @@ func (s *state) Execute() *file.Error {
 				l.env = l.env[:len(l.env)-len(expr.VarExprList)]
 				s.stack = s.stack[:len(s.stack)-1]
 			}
+		case *parser.IfNode:
+			if l.pc == 0 {
+				s.stack = append(s.stack, &layer{
+					env:  l.env,
+					expr: expr.Cond,
+				})
+				l.pc++
+			} else if l.pc == 1 {
+				if n, ok := s.value.(*Number); !ok {
+					return &file.Error{
+						Location: expr.Cond.GetLocation(),
+						Message:  "wrong condition type",
+					}
+				} else {
+					newLayer := &layer{
+						env: l.env,
+					}
+					if n.Numerator != 0 {
+						newLayer.expr = expr.Branch1
+					} else {
+						newLayer.expr = expr.Branch2
+					}
+					s.stack = append(s.stack, newLayer)
+				}
+				l.pc++
+			} else {
+				s.stack = s.stack[:len(s.stack)-1]
+			}
 		default:
 			return &file.Error{Location: expr.GetLocation(), Message: "unrecognized AST node"}
 		}

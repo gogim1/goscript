@@ -1,7 +1,6 @@
 package parser_test
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/gogim1/goscript/file"
@@ -188,18 +187,12 @@ func TestParse(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
 			tokens, err := lexer.Lex(file.NewSource(test.input))
-			if err != nil {
-				t.Errorf("%s:\n%v", test.input, err)
-				return
-			}
+			assert.Nil(t, err)
+
 			node, err := Parse(tokens)
-			if err != nil {
-				t.Errorf("%s:\n%v", test.input, err)
-				return
-			}
-			if !reflect.DeepEqual(node, test.node) {
-				t.Errorf("%s:\ngot\n\t%+v\nexpected\n\t%+v", test.input, node, test.node)
-			}
+			assert.Nil(t, err)
+
+			assert.Equal(t, node, test.node)
 		})
 	}
 }
@@ -249,9 +242,9 @@ func TestParse_error(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			tokens, err := lexer.Lex(file.Source(test.input))
 			assert.Nil(t, err)
+
 			_, err = Parse(tokens)
 			assert.NotNil(t, err)
-			t.Log(err)
 		})
 	}
 }
