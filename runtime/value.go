@@ -93,14 +93,14 @@ func NewClosureValue(env map[string]int, fun *parser.LambdaNode) *Closure {
 type Continuation struct {
 	Base
 	SourceLocation file.SourceLocation
-	Stack          []Layer
+	Stack          []layer
 }
 
 func (v *Continuation) String() string {
 	return fmt.Sprintf("<continuation evaluated at %s>", v.SourceLocation.Format())
 }
 
-func NewContinuationValue(sl file.SourceLocation, stack []Layer) *Continuation {
+func NewContinuationValue(sl file.SourceLocation, stack []layer) *Continuation {
 	return &Continuation{
 		SourceLocation: sl,
 		Stack:          stack,
