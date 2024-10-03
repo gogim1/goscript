@@ -39,10 +39,15 @@ func (s *state) Execute() *file.Error {
 
 		switch expr := l.expr.(type) {
 		case *parser.NumberNode:
-			s.value = NewNumberValue(expr.Numerator, expr.Denominator)
+			s.value = &Number{
+				Numerator:   expr.Numerator,
+				Denominator: expr.Denominator,
+			}
 			s.stack = s.stack[:len(s.stack)-1]
 		case *parser.StringNode:
-			s.value = NewStringValue(expr.Value.String())
+			s.value = &String{
+				Value: expr.Value.String(),
+			}
 			s.stack = s.stack[:len(s.stack)-1]
 		case *parser.LetrecNode:
 			if 1 < l.pc && l.pc <= len(expr.VarExprList)+1 {
@@ -57,7 +62,7 @@ func (s *state) Execute() *file.Error {
 				for _, ve := range expr.VarExprList {
 					l.env = append(l.env, envItem{
 						name:     ve.Variable.Name.String(),
-						location: s.new(NewVoidValue()),
+						location: s.new(&Void{}),
 					})
 				}
 				l.pc++
@@ -115,6 +120,16 @@ func (s *state) Execute() *file.Error {
 			}
 			s.value = s.store[location]
 			s.stack = s.stack[:len(s.stack)-1]
+		case *parser.SequenceNode:
+			if l.pc < len(expr.ExprList) {
+				s.stack = append(s.stack, &layer{
+					env:  l.env,
+					expr: expr.ExprList[l.pc],
+				})
+				l.pc++
+			} else {
+				s.stack = s.stack[:len(s.stack)-1]
+			}
 		default:
 			return &file.Error{
 				Location: expr.GetLocation(),

@@ -34,10 +34,6 @@ func (v *Void) String() string {
 	return "<void>"
 }
 
-func NewVoidValue() *Void {
-	return &Void{}
-}
-
 type Number struct {
 	Base
 	Numerator   int
@@ -51,13 +47,6 @@ func (v *Number) String() string {
 	return strconv.Itoa(v.Numerator) + "/" + strconv.Itoa(v.Denominator)
 }
 
-func NewNumberValue(n, d int) *Number {
-	return &Number{
-		Numerator:   n,
-		Denominator: d,
-	}
-}
-
 type String struct {
 	Base
 	Value string
@@ -65,12 +54,6 @@ type String struct {
 
 func (v *String) String() string {
 	return v.Value
-}
-
-func NewStringValue(s string) *String {
-	return &String{
-		Value: s,
-	}
 }
 
 type envItem struct {
@@ -88,13 +71,6 @@ func (v *Closure) String() string {
 	return fmt.Sprintf("<closure evaluated at %s>", v.Fun.Location.Format())
 }
 
-func NewClosureValue(env []envItem, fun *parser.LambdaNode) *Closure {
-	return &Closure{
-		Env: env,
-		Fun: fun,
-	}
-}
-
 type Continuation struct {
 	Base
 	SourceLocation file.SourceLocation
@@ -103,11 +79,4 @@ type Continuation struct {
 
 func (v *Continuation) String() string {
 	return fmt.Sprintf("<continuation evaluated at %s>", v.SourceLocation.Format())
-}
-
-func NewContinuationValue(sl file.SourceLocation, stack []layer) *Continuation {
-	return &Continuation{
-		SourceLocation: sl,
-		Stack:          stack,
-	}
 }

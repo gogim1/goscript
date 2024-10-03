@@ -21,6 +21,7 @@ func TestRuntime(t *testing.T) {
 		{`letrec (a=1 b="2") { letrec() {b} }`, `2`},
 		{`letrec (a=1 b="2") { letrec(a=3) {a} }`, `3`},
 		{`if 1 then 2 else 3`, `2`},
+		{`[1/1 "2" 3]`, `3`},
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
@@ -40,6 +41,7 @@ func TestRuntime(t *testing.T) {
 func TestRuntime_error(t *testing.T) {
 	tests := []string{
 		`if "true" then 2 else 3`,
+		`[letrec (a = 1) {a} a]`,
 	}
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {
