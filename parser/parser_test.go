@@ -3,6 +3,7 @@ package parser_test
 import (
 	"testing"
 
+	. "github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/file"
 	"github.com/gogim1/goscript/lexer"
 	. "github.com/gogim1/goscript/parser"

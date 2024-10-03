@@ -1,4 +1,4 @@
-package parser
+package ast
 
 import (
 	"math"
@@ -8,7 +8,7 @@ import (
 
 type ExprNode interface {
 	GetLocation() file.SourceLocation
-	SetLocation(file.SourceLocation)
+	Accept(Visitor) *file.Error
 }
 
 type Base struct {
@@ -17,10 +17,6 @@ type Base struct {
 
 func (n *Base) GetLocation() file.SourceLocation {
 	return n.Location
-}
-
-func (n *Base) SetLocation(sl file.SourceLocation) {
-	n.Location = sl
 }
 
 type NumberNode struct {
@@ -106,14 +102,6 @@ func NewLambdaNode(sl file.SourceLocation, vl []*VariableNode, e ExprNode) *Lamb
 type LetrecVarExprItem struct {
 	Variable *VariableNode
 	Expr     ExprNode
-}
-
-func newLetrecVarExprItem(v *VariableNode, e ExprNode) *LetrecVarExprItem {
-	node := &LetrecVarExprItem{
-		Variable: v,
-		Expr:     e,
-	}
-	return node
 }
 
 type LetrecNode struct {

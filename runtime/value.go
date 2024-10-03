@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/file"
-	"github.com/gogim1/goscript/parser"
 )
 
 type Value interface {
@@ -64,7 +64,7 @@ type envItem struct {
 type Closure struct {
 	Base
 	Env []envItem
-	Fun *parser.LambdaNode
+	Fun *ast.LambdaNode
 }
 
 func (v *Closure) String() string {

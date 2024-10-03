@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	. "github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/file"
 	"github.com/gogim1/goscript/lexer"
 )
@@ -174,7 +175,10 @@ func (p *parser) parseLetrec() (*LetrecNode, *file.Error) {
 			if err != nil {
 				return nil, err
 			}
-			varExprList = append(varExprList, newLetrecVarExprItem(v, e))
+			varExprList = append(varExprList, &LetrecVarExprItem{
+				Variable: v,
+				Expr:     e,
+			})
 		} else {
 			break
 		}

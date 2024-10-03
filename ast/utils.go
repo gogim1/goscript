@@ -1,4 +1,4 @@
-package parser
+package ast
 
 func gcd(x, y int) int {
 	for y != 0 {

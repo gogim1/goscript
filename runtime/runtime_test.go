@@ -15,6 +15,7 @@ func TestRuntime(t *testing.T) {
 		input, value string
 	}{
 		{`10/5`, `2`},
+		{`"hello world"`, `hello world`},
 		{`letrec () {1.1}`, `11/10`},
 		{`letrec (a=1 b=2) {"hello world"}`, `hello world`},
 		{`letrec (a=1 b=2) {a}`, `1`},
@@ -22,6 +23,7 @@ func TestRuntime(t *testing.T) {
 		{`letrec (a=1 b="2") { letrec(a=3) {a} }`, `3`},
 		{`if 1 then 2 else 3`, `2`},
 		{`[1/1 "2" 3]`, `3`},
+		{`lambda () {1}`, `<closure evaluated at (SourceLocation 1 1)>`},
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {

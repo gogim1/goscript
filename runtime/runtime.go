@@ -1,14 +1,18 @@
 package runtime
 
 import (
+	"unicode"
+
+	"github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/file"
-	"github.com/gogim1/goscript/parser"
 )
 
 type layer struct {
-	env  []envItem
-	expr parser.ExprNode
-	pc   int
+	env    []envItem
+	expr   ast.ExprNode
+	pc     int
+	args   []Value
+	callee Value
 }
 
 type state struct {
@@ -17,7 +21,7 @@ type state struct {
 	store []Value
 }
 
-func NewState(expr parser.ExprNode) *state {
+func NewState(expr ast.ExprNode) *state {
 	return &state{
 		stack: []*layer{
 			{expr: nil},
@@ -37,104 +41,9 @@ func (s *state) Execute() *file.Error {
 			return nil
 		}
 
-		switch expr := l.expr.(type) {
-		case *parser.NumberNode:
-			s.value = &Number{
-				Numerator:   expr.Numerator,
-				Denominator: expr.Denominator,
-			}
-			s.stack = s.stack[:len(s.stack)-1]
-		case *parser.StringNode:
-			s.value = &String{
-				Value: expr.Value.String(),
-			}
-			s.stack = s.stack[:len(s.stack)-1]
-		case *parser.LetrecNode:
-			if 1 < l.pc && l.pc <= len(expr.VarExprList)+1 {
-				v := expr.VarExprList[l.pc-2].Variable
-				lastLocation := s.lookupEnv(v.Name.String(), l.env)
-				if lastLocation == -1 {
-					panic("this should not happened. panic for testing.")
-				}
-				s.store[lastLocation] = s.value
-			}
-			if l.pc == 0 {
-				for _, ve := range expr.VarExprList {
-					l.env = append(l.env, envItem{
-						name:     ve.Variable.Name.String(),
-						location: s.new(&Void{}),
-					})
-				}
-				l.pc++
-			} else if l.pc <= len(expr.VarExprList) {
-				s.stack = append(s.stack, &layer{
-					env:  l.env,
-					expr: expr.VarExprList[l.pc-1].Expr,
-				})
-				l.pc++
-			} else if l.pc == len(expr.VarExprList)+1 {
-				s.stack = append(s.stack, &layer{
-					env:  l.env,
-					expr: expr.Expr,
-				})
-				l.pc++
-			} else {
-				l.env = l.env[:len(l.env)-len(expr.VarExprList)]
-				s.stack = s.stack[:len(s.stack)-1]
-			}
-		case *parser.IfNode:
-			if l.pc == 0 {
-				s.stack = append(s.stack, &layer{
-					env:  l.env,
-					expr: expr.Cond,
-				})
-				l.pc++
-			} else if l.pc == 1 {
-				if n, ok := s.value.(*Number); !ok {
-					return &file.Error{
-						Location: expr.Cond.GetLocation(),
-						Message:  "wrong condition type",
-					}
-				} else {
-					newLayer := &layer{
-						env: l.env,
-					}
-					if n.Numerator != 0 {
-						newLayer.expr = expr.Branch1
-					} else {
-						newLayer.expr = expr.Branch2
-					}
-					s.stack = append(s.stack, newLayer)
-				}
-				l.pc++
-			} else {
-				s.stack = s.stack[:len(s.stack)-1]
-			}
-		case *parser.VariableNode:
-			location := s.lookupEnv(expr.Name.String(), l.env)
-			if location == -1 {
-				return &file.Error{
-					Location: expr.GetLocation(),
-					Message:  "undefined variable",
-				}
-			}
-			s.value = s.store[location]
-			s.stack = s.stack[:len(s.stack)-1]
-		case *parser.SequenceNode:
-			if l.pc < len(expr.ExprList) {
-				s.stack = append(s.stack, &layer{
-					env:  l.env,
-					expr: expr.ExprList[l.pc],
-				})
-				l.pc++
-			} else {
-				s.stack = s.stack[:len(s.stack)-1]
-			}
-		default:
-			return &file.Error{
-				Location: expr.GetLocation(),
-				Message:  "unrecognized AST node",
-			}
+		err := l.expr.Accept(s)
+		if err != nil {
+			return err
 		}
 	}
 }
@@ -146,6 +55,16 @@ func (s *state) lookupEnv(name string, env []envItem) int {
 		}
 	}
 	return -1
+}
+
+func (s *state) filterLexical(env []envItem) []envItem {
+	newEnv := []envItem{}
+	for _, item := range env {
+		if len(item.name) > 0 && unicode.IsLower([]rune(item.name)[0]) {
+			newEnv = append(newEnv, item)
+		}
+	}
+	return newEnv
 }
 
 func (s *state) new(value Value) int {
