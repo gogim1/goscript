@@ -2,7 +2,6 @@ package parser
 
 import (
 	"math"
-	"reflect"
 	"strconv"
 	"strings"
 	"unicode"
@@ -17,11 +16,11 @@ var intrinsics = []string{
 }
 
 type parser struct {
-	tokens    []lexer.Token
+	tokens    []*lexer.Token
 	currIndex int
 }
 
-func (p *parser) consume(predicate func(lexer.Token) bool) (*lexer.Token, *file.Error) {
+func (p *parser) consume(predicate func(*lexer.Token) bool) (*lexer.Token, *file.Error) {
 	if p.currIndex >= len(p.tokens) {
 		return nil, &file.Error{
 			Location: file.SourceLocation{Line: -1, Col: -1},
@@ -38,13 +37,12 @@ func (p *parser) consume(predicate func(lexer.Token) bool) (*lexer.Token, *file.
 			Message:  "unexpected token",
 		}
 	}
-	return &currToken, nil
+	return currToken, nil
 }
 
 func (p *parser) parseNumber() (*NumberNode, *file.Error) {
-	currToken, err := p.consume(func(token lexer.Token) bool {
-		return len(token.Source) > 0 &&
-			(unicode.IsDigit(token.Source[0]) || strings.ContainsRune("-+", token.Source[0]))
+	currToken, err := p.consume(func(token *lexer.Token) bool {
+		return len(token.Source) > 0 && token.Kind == lexer.Number
 	})
 	if err != nil {
 		return nil, err
@@ -52,30 +50,30 @@ func (p *parser) parseNumber() (*NumberNode, *file.Error) {
 
 	source := currToken.Source
 
-	if strings.Contains(source.String(), "/") {
-		items := strings.Split(source.String(), "/")
+	if strings.Contains(source, "/") {
+		items := strings.Split(source, "/")
 		n, _ := strconv.Atoi(items[0])
 		d, _ := strconv.Atoi(items[1])
 		return NewNumberNode(currToken.Location, n, d), nil
-	} else if strings.Contains(source.String(), ".") {
-		items := strings.Split(source.String(), ".")
+	} else if strings.Contains(source, ".") {
+		items := strings.Split(source, ".")
 		n, _ := strconv.Atoi(items[0] + items[1])
 		d := math.Pow10(len(items[1]))
 		return NewNumberNode(currToken.Location, n, int(d)), nil
 	} else {
-		n, _ := strconv.Atoi(source.String())
+		n, _ := strconv.Atoi(source)
 		return NewNumberNode(currToken.Location, n, 1), nil
 	}
 }
 
 func (p *parser) parseString() (*StringNode, *file.Error) {
-	currToken, err := p.consume(func(token lexer.Token) bool {
+	currToken, err := p.consume(func(token *lexer.Token) bool {
 		return len(token.Source) > 0 && token.Source[0] == '"'
 	})
 	if err != nil {
 		return nil, err
 	}
-	s := file.NewSource("")
+	s := ""
 	currIndex := 1
 	for currIndex < len(currToken.Source)-1 {
 		char := currToken.Source[currIndex]
@@ -85,13 +83,13 @@ func (p *parser) parseString() (*StringNode, *file.Error) {
 				nextChar := currToken.Source[currIndex]
 				currIndex++
 				if nextChar == '\\' {
-					s = append(s, '\\')
+					s += "\\"
 				} else if nextChar == '"' {
-					s = append(s, '"')
+					s += "\""
 				} else if nextChar == 't' {
-					s = append(s, '\t')
+					s += "\t"
 				} else if nextChar == 'n' {
-					s = append(s, '\n')
+					s += "\n"
 				} else {
 					return nil, &file.Error{Location: currToken.Location, Message: "unsupported escape sequence"}
 				}
@@ -99,18 +97,18 @@ func (p *parser) parseString() (*StringNode, *file.Error) {
 				return nil, &file.Error{Location: currToken.Location, Message: "incomplete escape sequence"}
 			}
 		} else {
-			s = append(s, char)
+			s += string(char)
 		}
 	}
 	return NewStringNode(currToken.Location, s), nil
 }
 
 func (p *parser) parseLambda() (*LambdaNode, *file.Error) {
-	start, err := p.consume(func(token lexer.Token) bool { return token.Source.String() == "lambda" })
+	start, err := p.consume(func(token *lexer.Token) bool { return token.Source == "lambda" })
 	if err != nil {
 		return nil, err
 	}
-	_, err = p.consume(func(token lexer.Token) bool { return token.Source.String() == "(" })
+	_, err = p.consume(func(token *lexer.Token) bool { return token.Source == "(" })
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +116,7 @@ func (p *parser) parseLambda() (*LambdaNode, *file.Error) {
 	varList := []*VariableNode{}
 	for p.currIndex < len(p.tokens) {
 		currToken := p.tokens[p.currIndex]
-		if len(currToken.Source) > 0 && unicode.IsLetter(currToken.Source[0]) {
+		if len(currToken.Source) > 0 && currToken.Kind == lexer.Identifier {
 			node, err := p.parseVariable()
 			if err != nil {
 				return nil, err
@@ -128,11 +126,11 @@ func (p *parser) parseLambda() (*LambdaNode, *file.Error) {
 			break
 		}
 	}
-	_, err = p.consume(func(token lexer.Token) bool { return token.Source.String() == ")" })
+	_, err = p.consume(func(token *lexer.Token) bool { return token.Source == ")" })
 	if err != nil {
 		return nil, err
 	}
-	_, err = p.consume(func(token lexer.Token) bool { return token.Source.String() == "{" })
+	_, err = p.consume(func(token *lexer.Token) bool { return token.Source == "{" })
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +140,7 @@ func (p *parser) parseLambda() (*LambdaNode, *file.Error) {
 		return nil, err
 	}
 
-	_, err = p.consume(func(token lexer.Token) bool { return token.Source.String() == "}" })
+	_, err = p.consume(func(token *lexer.Token) bool { return token.Source == "}" })
 	if err != nil {
 		return nil, err
 	}
@@ -151,11 +149,11 @@ func (p *parser) parseLambda() (*LambdaNode, *file.Error) {
 }
 
 func (p *parser) parseLetrec() (*LetrecNode, *file.Error) {
-	start, err := p.consume(func(token lexer.Token) bool { return token.Source.String() == "letrec" })
+	start, err := p.consume(func(token *lexer.Token) bool { return token.Source == "letrec" })
 	if err != nil {
 		return nil, err
 	}
-	_, err = p.consume(func(token lexer.Token) bool { return token.Source.String() == "(" })
+	_, err = p.consume(func(token *lexer.Token) bool { return token.Source == "(" })
 	if err != nil {
 		return nil, err
 	}
@@ -163,12 +161,12 @@ func (p *parser) parseLetrec() (*LetrecNode, *file.Error) {
 	varExprList := []*LetrecVarExprItem{}
 	for p.currIndex < len(p.tokens) {
 		currToken := p.tokens[p.currIndex]
-		if len(currToken.Source) > 0 && unicode.IsLetter(currToken.Source[0]) {
+		if len(currToken.Source) > 0 && currToken.Kind == lexer.Identifier {
 			v, err := p.parseVariable()
 			if err != nil {
 				return nil, err
 			}
-			_, err = p.consume(func(token lexer.Token) bool { return token.Source.String() == "=" })
+			_, err = p.consume(func(token *lexer.Token) bool { return token.Source == "=" })
 			if err != nil {
 				return nil, err
 			}
@@ -182,12 +180,12 @@ func (p *parser) parseLetrec() (*LetrecNode, *file.Error) {
 		}
 	}
 
-	_, err = p.consume(func(token lexer.Token) bool { return token.Source.String() == ")" })
+	_, err = p.consume(func(token *lexer.Token) bool { return token.Source == ")" })
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = p.consume(func(token lexer.Token) bool { return token.Source.String() == "{" })
+	_, err = p.consume(func(token *lexer.Token) bool { return token.Source == "{" })
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +195,7 @@ func (p *parser) parseLetrec() (*LetrecNode, *file.Error) {
 		return nil, err
 	}
 
-	_, err = p.consume(func(token lexer.Token) bool { return token.Source.String() == "}" })
+	_, err = p.consume(func(token *lexer.Token) bool { return token.Source == "}" })
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +203,7 @@ func (p *parser) parseLetrec() (*LetrecNode, *file.Error) {
 }
 
 func (p *parser) parseIf() (*IfNode, *file.Error) {
-	start, err := p.consume(func(token lexer.Token) bool { return token.Source.String() == "if" })
+	start, err := p.consume(func(token *lexer.Token) bool { return token.Source == "if" })
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +211,7 @@ func (p *parser) parseIf() (*IfNode, *file.Error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = p.consume(func(token lexer.Token) bool { return token.Source.String() == "then" })
+	_, err = p.consume(func(token *lexer.Token) bool { return token.Source == "then" })
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +219,7 @@ func (p *parser) parseIf() (*IfNode, *file.Error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = p.consume(func(token lexer.Token) bool { return token.Source.String() == "else" })
+	_, err = p.consume(func(token *lexer.Token) bool { return token.Source == "else" })
 	if err != nil {
 		return nil, err
 	}
@@ -233,15 +231,15 @@ func (p *parser) parseIf() (*IfNode, *file.Error) {
 }
 
 func (p *parser) parseIntrinsic() (*IntrinsicNode, *file.Error) {
-	currToken, err := p.consume(func(token lexer.Token) bool {
-		return len(token.Source) > 0 && unicode.IsLetter(token.Source[0])
+	currToken, err := p.consume(func(token *lexer.Token) bool {
+		return len(token.Source) > 0 && token.Kind == lexer.Identifier
 	})
 	if err != nil {
 		return nil, err
 	}
 	isIntrinsic := false
 	for _, kw := range intrinsics {
-		if reflect.DeepEqual(file.NewSource(kw), currToken.Source) {
+		if kw == currToken.Source {
 			isIntrinsic = true
 			break
 		}
@@ -253,23 +251,27 @@ func (p *parser) parseIntrinsic() (*IntrinsicNode, *file.Error) {
 }
 
 func (p *parser) parseVariable() (*VariableNode, *file.Error) {
-	currToken, err := p.consume(func(token lexer.Token) bool {
-		return len(token.Source) > 0 && unicode.IsLetter(token.Source[0])
+	currToken, err := p.consume(func(token *lexer.Token) bool {
+		return len(token.Source) > 0 && token.Kind == lexer.Identifier
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	for _, kw := range intrinsics {
-		if reflect.DeepEqual(file.NewSource(kw), currToken.Source) {
+		if kw == currToken.Source {
 			return nil, &file.Error{Location: currToken.Location, Message: "incorrect variable name"}
 		}
 	}
-	return NewVariableNode(currToken.Location, currToken.Source), nil
+	kind := Lexical
+	if unicode.IsUpper([]rune(currToken.Source)[0]) {
+		kind = Dynamic
+	}
+	return NewVariableNode(currToken.Location, currToken.Source, kind), nil
 }
 
 func (p *parser) parseCall() (*CallNode, *file.Error) {
-	start, err := p.consume(func(token lexer.Token) bool { return token.Source.String() == "(" })
+	start, err := p.consume(func(token *lexer.Token) bool { return token.Source == "(" })
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +283,7 @@ func (p *parser) parseCall() (*CallNode, *file.Error) {
 
 	isIntrinsic := false
 	for _, kw := range intrinsics {
-		if reflect.DeepEqual(file.NewSource(kw), currToken.Source) {
+		if kw == currToken.Source {
 			isIntrinsic = true
 			break
 		}
@@ -302,7 +304,7 @@ func (p *parser) parseCall() (*CallNode, *file.Error) {
 	argList := []ExprNode{}
 	for p.currIndex < len(p.tokens) {
 		currToken = p.tokens[p.currIndex]
-		if currToken.Source.String() != ")" {
+		if currToken.Source != ")" {
 			arg, err := p.parseExpr()
 			if err != nil {
 				return nil, err
@@ -313,7 +315,7 @@ func (p *parser) parseCall() (*CallNode, *file.Error) {
 		}
 	}
 
-	_, err = p.consume(func(token lexer.Token) bool { return token.Source.String() == ")" })
+	_, err = p.consume(func(token *lexer.Token) bool { return token.Source == ")" })
 	if err != nil {
 		return nil, err
 	}
@@ -322,14 +324,14 @@ func (p *parser) parseCall() (*CallNode, *file.Error) {
 }
 
 func (p *parser) parseSequence() (*SequenceNode, *file.Error) {
-	start, err := p.consume(func(token lexer.Token) bool { return token.Source.String() == "[" })
+	start, err := p.consume(func(token *lexer.Token) bool { return token.Source == "[" })
 	if err != nil {
 		return nil, err
 	}
 	exprList := []ExprNode{}
 	for p.currIndex < len(p.tokens) {
 		currToken := p.tokens[p.currIndex]
-		if currToken.Source.String() != "]" {
+		if currToken.Source != "]" {
 			expr, err := p.parseExpr()
 			if err != nil {
 				return nil, err
@@ -340,7 +342,7 @@ func (p *parser) parseSequence() (*SequenceNode, *file.Error) {
 		}
 	}
 
-	_, err = p.consume(func(token lexer.Token) bool { return token.Source.String() == "]" })
+	_, err = p.consume(func(token *lexer.Token) bool { return token.Source == "]" })
 	if err != nil {
 		return nil, err
 	}
@@ -361,29 +363,28 @@ func (p *parser) parseExpr() (ExprNode, *file.Error) {
 	}
 
 	currToken := p.tokens[p.currIndex]
-	if len(currToken.Source) > 0 &&
-		(unicode.IsDigit(currToken.Source[0]) || strings.ContainsRune("-+", currToken.Source[0])) {
+	if len(currToken.Source) > 0 && currToken.Kind == lexer.Number {
 		return p.parseNumber()
-	} else if len(currToken.Source) > 0 && currToken.Source[0] == '"' {
+	} else if len(currToken.Source) > 0 && currToken.Kind == lexer.String {
 		return p.parseString()
-	} else if currToken.Source.String() == "lambda" {
+	} else if currToken.Source == "lambda" {
 		return p.parseLambda()
-	} else if currToken.Source.String() == "letrec" {
+	} else if currToken.Source == "letrec" {
 		return p.parseLetrec()
-	} else if currToken.Source.String() == "if" {
+	} else if currToken.Source == "if" {
 		return p.parseIf()
-	} else if len(currToken.Source) > 0 && unicode.IsLetter(currToken.Source[0]) {
+	} else if len(currToken.Source) > 0 && currToken.Kind == lexer.Identifier {
 		return p.parseVariable()
-	} else if currToken.Source.String() == "(" {
+	} else if currToken.Source == "(" {
 		return p.parseCall()
-	} else if currToken.Source.String() == "[" {
+	} else if currToken.Source == "[" {
 		return p.parseSequence()
 	} else {
 		return nil, &file.Error{Location: currToken.Location, Message: "unrecognized token"}
 	}
 }
 
-func Parse(tokens []lexer.Token) (ExprNode, *file.Error) {
+func Parse(tokens []*lexer.Token) (ExprNode, *file.Error) {
 	parser := &parser{
 		tokens:    tokens,
 		currIndex: 0,

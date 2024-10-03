@@ -2,7 +2,6 @@ package parser
 
 import (
 	"math"
-	"unicode"
 
 	"github.com/gogim1/goscript/file"
 )
@@ -42,10 +41,10 @@ func NewNumberNode(sl file.SourceLocation, n, d int) *NumberNode {
 
 type StringNode struct {
 	Base
-	Value file.Source
+	Value string
 }
 
-func NewStringNode(sl file.SourceLocation, v file.Source) *StringNode {
+func NewStringNode(sl file.SourceLocation, v string) *StringNode {
 	node := &StringNode{
 		Base:  Base{Location: sl},
 		Value: v,
@@ -55,10 +54,10 @@ func NewStringNode(sl file.SourceLocation, v file.Source) *StringNode {
 
 type IntrinsicNode struct {
 	Base
-	Name file.Source
+	Name string
 }
 
-func NewIntrinsicNode(sl file.SourceLocation, n file.Source) *IntrinsicNode {
+func NewIntrinsicNode(sl file.SourceLocation, n string) *IntrinsicNode {
 	node := &IntrinsicNode{
 		Base: Base{Location: sl},
 		Name: n,
@@ -66,23 +65,25 @@ func NewIntrinsicNode(sl file.SourceLocation, n file.Source) *IntrinsicNode {
 	return node
 }
 
+type ScopeKind int
+
+const (
+	Unknown ScopeKind = iota
+	Lexical
+	Dynamic
+)
+
 type VariableNode struct {
 	Base
-	Name file.Source
+	Name string
+	Kind ScopeKind
 }
 
-func (n *VariableNode) IsLex() bool {
-	return unicode.IsLower(n.Name[0])
-}
-
-func (n *VariableNode) IsDyn() bool {
-	return unicode.IsUpper(n.Name[0])
-}
-
-func NewVariableNode(sl file.SourceLocation, n file.Source) *VariableNode {
+func NewVariableNode(sl file.SourceLocation, n string, k ScopeKind) *VariableNode {
 	node := &VariableNode{
 		Base: Base{Location: sl},
 		Name: n,
+		Kind: k,
 	}
 	return node
 }

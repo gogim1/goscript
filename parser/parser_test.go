@@ -42,21 +42,22 @@ func TestParse(t *testing.T) {
 			`"123.45"`,
 			&StringNode{
 				Base:  Base{Location: file.SourceLocation{Line: 1, Col: 1}},
-				Value: file.NewSource(`123.45`),
+				Value: `123.45`,
 			},
 		},
 		{
 			`"\\\"\t\n"`,
 			&StringNode{
 				Base:  Base{Location: file.SourceLocation{Line: 1, Col: 1}},
-				Value: file.NewSource("\\\"\t\n"),
+				Value: "\\\"\t\n",
 			},
 		},
 		{
 			`a`,
 			&VariableNode{
 				Base: Base{Location: file.SourceLocation{Line: 1, Col: 1}},
-				Name: file.NewSource("a"),
+				Name: "a",
+				Kind: Lexical,
 			},
 		},
 		{
@@ -72,22 +73,25 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			`lambda (a b) { c }`,
+			`lambda (a B) { c }`,
 			&LambdaNode{
 				Base: Base{Location: file.SourceLocation{Line: 1, Col: 1}},
 				VarList: []*VariableNode{
 					{
 						Base: Base{Location: file.SourceLocation{Line: 1, Col: 9}},
-						Name: file.NewSource("a"),
+						Name: "a",
+						Kind: Lexical,
 					},
 					{
 						Base: Base{Location: file.SourceLocation{Line: 1, Col: 11}},
-						Name: file.NewSource("b"),
+						Name: "B",
+						Kind: Dynamic,
 					},
 				},
 				Expr: &VariableNode{
 					Base: Base{Location: file.SourceLocation{Line: 1, Col: 16}},
-					Name: file.NewSource("c"),
+					Name: "c",
+					Kind: Lexical,
 				},
 			},
 		},
@@ -111,7 +115,8 @@ func TestParse(t *testing.T) {
 					{
 						Variable: &VariableNode{
 							Base: Base{Location: file.SourceLocation{Line: 1, Col: 9}},
-							Name: file.NewSource("a"),
+							Name: "a",
+							Kind: Lexical,
 						},
 						Expr: &NumberNode{
 							Base:        Base{Location: file.SourceLocation{Line: 1, Col: 11}},
@@ -122,17 +127,19 @@ func TestParse(t *testing.T) {
 					{
 						Variable: &VariableNode{
 							Base: Base{Location: file.SourceLocation{Line: 1, Col: 13}},
-							Name: file.NewSource("b"),
+							Name: "b",
+							Kind: Lexical,
 						},
 						Expr: &VariableNode{
 							Base: Base{Location: file.SourceLocation{Line: 1, Col: 15}},
-							Name: file.NewSource("a"),
+							Name: "a",
+							Kind: Lexical,
 						},
 					},
 				},
 				Expr: &StringNode{
 					Base:  Base{Location: file.SourceLocation{Line: 1, Col: 20}},
-					Value: file.NewSource("str"),
+					Value: "str",
 				},
 			},
 		},
@@ -152,7 +159,8 @@ func TestParse(t *testing.T) {
 				},
 				Branch2: &VariableNode{
 					Base: Base{Location: file.SourceLocation{Line: 1, Col: 18}},
-					Name: file.NewSource("b"),
+					Name: "b",
+					Kind: Lexical,
 				},
 			},
 		},
@@ -162,12 +170,12 @@ func TestParse(t *testing.T) {
 				Base: Base{Location: file.SourceLocation{Line: 1, Col: 1}},
 				Callee: &IntrinsicNode{
 					Base: Base{Location: file.SourceLocation{Line: 1, Col: 2}},
-					Name: file.NewSource("put"),
+					Name: "put",
 				},
 				ArgList: []ExprNode{
 					&StringNode{
 						Base:  Base{Location: file.SourceLocation{Line: 1, Col: 6}},
-						Value: file.NewSource("hello world"),
+						Value: "hello world",
 					},
 				},
 			},
@@ -179,7 +187,8 @@ func TestParse(t *testing.T) {
 				ArgList: []ExprNode{},
 				Callee: &VariableNode{
 					Base: Base{Location: file.SourceLocation{Line: 1, Col: 2}},
-					Name: file.NewSource("user_defined_function"),
+					Name: "user_defined_function",
+					Kind: Lexical,
 				},
 			},
 		},
@@ -245,6 +254,7 @@ func TestParse_error(t *testing.T) {
 
 			_, err = Parse(tokens)
 			assert.NotNil(t, err)
+			t.Log(err)
 		})
 	}
 }

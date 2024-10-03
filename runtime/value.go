@@ -68,7 +68,7 @@ type Closure struct {
 }
 
 func (v *Closure) String() string {
-	return fmt.Sprintf("<closure evaluated at %s>", v.Fun.Location.Format())
+	return fmt.Sprintf("<closure evaluated at %s>", v.Fun.Location)
 }
 
 type Continuation struct {
@@ -78,5 +78,5 @@ type Continuation struct {
 }
 
 func (v *Continuation) String() string {
-	return fmt.Sprintf("<continuation evaluated at %s>", v.SourceLocation.Format())
+	return fmt.Sprintf("<continuation evaluated at %s>", v.SourceLocation)
 }

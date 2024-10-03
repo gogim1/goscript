@@ -1,17 +1,11 @@
 package lexer
 
 import (
-	"reflect"
 	"strings"
 	"unicode"
 
 	"github.com/gogim1/goscript/file"
 )
-
-type Token struct {
-	Location file.SourceLocation
-	Source   file.Source
-}
 
 type lexer struct {
 	source       file.Source
@@ -19,56 +13,58 @@ type lexer struct {
 	currLocation file.SourceLocation
 }
 
-var (
-	eof = Token{}
-)
-
-func (l *lexer) nextToken() (Token, *file.Error) {
+func (l *lexer) nextToken() (*Token, *file.Error) {
 	for l.currIndex < len(l.source) && unicode.IsSpace(l.source[l.currIndex]) {
 		l.currLocation.Update(l.source[l.currIndex])
 		l.currIndex++
 	}
+	begin := l.currIndex
+	kind := Unknown
 	if l.currIndex < len(l.source) {
 		tokenLocation := l.currLocation
-		src := file.NewSource("")
 		currChar := l.source[l.currIndex]
 		if unicode.IsDigit(currChar) || strings.ContainsRune("-+", currChar) {
+			kind = Number
 			for l.currIndex < len(l.source) {
 				currChar = l.source[l.currIndex]
 				if unicode.IsDigit(currChar) || strings.ContainsRune("-+./", currChar) {
-					src = append(src, currChar)
 					l.currLocation.Update(currChar)
 					l.currIndex++
 				} else {
 					break
 				}
 			}
-			if !numberRegexp.MatchString(string(src)) {
-				return Token{}, &file.Error{Location: tokenLocation, Message: "invalid number literal"}
+			if !numberRegexp.MatchString(string(l.source[begin:l.currIndex])) {
+				return nil, &file.Error{Location: tokenLocation, Message: "invalid number literal"}
 			}
 		} else if unicode.IsLetter(currChar) {
 			for l.currIndex < len(l.source) {
 				currChar = l.source[l.currIndex]
 				if unicode.IsLetter(currChar) || unicode.IsDigit(currChar) || currChar == '_' {
-					src = append(src, currChar)
 					l.currLocation.Update(currChar)
 					l.currIndex++
 				} else {
 					break
 				}
 			}
+			kind = Identifier
+			for _, kw := range keyword {
+				if string(l.source[begin:l.currIndex]) == kw {
+					kind = Keyword
+					break
+				}
+			}
 		} else if strings.ContainsRune("(){}[]=@&", currChar) {
-			src = append(src, currChar)
+			kind = Symbol
 			l.currLocation.Update(currChar)
 			l.currIndex++
 		} else if currChar == '"' {
-			src = append(src, currChar)
+			kind = String
 			l.currLocation.Update(currChar)
 			l.currIndex++
 			for l.currIndex < len(l.source) {
 				currChar = l.source[l.currIndex]
-				if currChar != '"' || (currChar == '"' && countTrailingEscape(src)%2 != 0) {
-					src = append(src, currChar)
+				if currChar != '"' || (currChar == '"' && countTrailingEscape(string(l.source[begin:l.currIndex]))%2 != 0) {
 					l.currLocation.Update(currChar)
 					l.currIndex++
 				} else {
@@ -76,11 +72,10 @@ func (l *lexer) nextToken() (Token, *file.Error) {
 				}
 			}
 			if l.currIndex < len(l.source) && currChar == '"' {
-				src = append(src, currChar)
 				l.currLocation.Update(currChar)
 				l.currIndex++
 			} else {
-				return Token{}, &file.Error{Location: tokenLocation, Message: "incomplete string literal"}
+				return nil, &file.Error{Location: tokenLocation, Message: "incomplete string literal"}
 			}
 		} else if currChar == '#' {
 			for l.currIndex < len(l.source) {
@@ -94,15 +89,19 @@ func (l *lexer) nextToken() (Token, *file.Error) {
 			}
 			return l.nextToken()
 		} else {
-			return Token{}, &file.Error{Location: l.currLocation, Message: "unsupported token starting character"}
+			return nil, &file.Error{Location: l.currLocation, Message: "unsupported token starting character"}
 		}
-		return Token{Location: tokenLocation, Source: src}, nil
+		return &Token{
+			Location: tokenLocation,
+			Kind:     kind,
+			Source:   string(l.source[begin:l.currIndex]),
+		}, nil
 	} else {
-		return eof, nil
+		return &eof, nil
 	}
 }
 
-func Lex(source file.Source) ([]Token, *file.Error) {
+func Lex(source file.Source) ([]*Token, *file.Error) {
 	sl := file.SourceLocation{Line: 1, Col: 1}
 	for _, char := range source {
 		if !strings.ContainsRune(charSet, char) {
@@ -113,16 +112,15 @@ func Lex(source file.Source) ([]Token, *file.Error) {
 
 	l := &lexer{
 		source:       source,
-		currIndex:    0,
 		currLocation: file.SourceLocation{Line: 1, Col: 1},
 	}
-	tokens := make([]Token, 0)
+	tokens := make([]*Token, 0)
 	for {
 		token, err := l.nextToken()
 		if err != nil {
 			return nil, err
 		}
-		if reflect.DeepEqual(token, eof) {
+		if token == &eof {
 			break
 		} else {
 			tokens = append(tokens, token)

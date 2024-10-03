@@ -17,7 +17,7 @@ type SourceLocation struct {
 	Col  int
 }
 
-func (sl *SourceLocation) Format() string {
+func (sl SourceLocation) String() string {
 	if sl.Line <= 0 || sl.Col <= 0 {
 		return "(SourceLocation N/A)"
 	}
