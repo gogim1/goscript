@@ -24,6 +24,10 @@ func TestRuntime(t *testing.T) {
 		{`if 1 then 2 else 3`, `2`},
 		{`[1/1 "2" 3]`, `3`},
 		{`lambda () {1}`, `<closure evaluated at (SourceLocation 1 1)>`},
+		{`(lambda () {1})`, `1`},
+		{`(lambda (a b) {a} 1 2)`, `1`},
+		{`((lambda (a) { lambda (a) { a } } 1) 2)`, `2`},
+		{`(lambda (a) { (lambda (b c) { c } a a) } 1)`, `1`},
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
@@ -44,6 +48,8 @@ func TestRuntime_error(t *testing.T) {
 	tests := []string{
 		`if "true" then 2 else 3`,
 		`[letrec (a = 1) {a} a]`,
+		`(lambda () { 1 } 2)`,
+		`letrec (a = 1) {(a)}`,
 	}
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {

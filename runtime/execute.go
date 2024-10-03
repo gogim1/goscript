@@ -10,6 +10,7 @@ func (s *state) VisitNumberNode(n *ast.NumberNode) *file.Error {
 		Numerator:   n.Numerator,
 		Denominator: n.Denominator,
 	}
+	s.value.SetLocation(-1)
 	s.stack = s.stack[:len(s.stack)-1]
 	return nil
 }
@@ -18,6 +19,7 @@ func (s *state) VisitStringNode(n *ast.StringNode) *file.Error {
 	s.value = &String{
 		Value: n.Value,
 	}
+	s.value.SetLocation(-1)
 	s.stack = s.stack[:len(s.stack)-1]
 	return nil
 }
@@ -46,6 +48,7 @@ func (s *state) VisitLambdaNode(n *ast.LambdaNode) *file.Error {
 		Env: s.filterLexical(l.env),
 		Fun: n,
 	}
+	s.value.SetLocation(-1)
 	s.stack = s.stack[:len(s.stack)-1]
 	return nil
 }
@@ -120,27 +123,78 @@ func (s *state) VisitIfNode(n *ast.IfNode) *file.Error {
 }
 
 func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
-	// l := s.stack[len(s.stack)-1]
-	// if callee, ok := n.Callee.(*ast.IntrinsicNode); ok {
-	// 	if 1 < l.pc && l.pc <= len(n.ArgList)+1 {
-	// 		l.args = append(l.args, s.value)
-	// 	}
-	// 	if l.pc == 0 {
-	// 		l.pc++
-	// 	} else if l.pc <= len(n.ArgList) {
-	// 		s.stack = append(s.stack, &layer{
-	// 			env:  l.env,
-	// 			expr: n.ArgList[l.pc-1],
-	// 		})
-	// 		l.pc++
-	// 	} else {
-	// 		args := l.args
-	// 		intrinsic := callee.Name
-	// 		// TODO
+	l := s.stack[len(s.stack)-1]
+	if callee, ok := n.Callee.(*ast.IntrinsicNode); ok {
+		if 1 < l.pc && l.pc <= len(n.ArgList)+1 {
+			l.args = append(l.args, s.value)
+		}
+		if l.pc == 0 {
+			l.pc++
+		} else if l.pc <= len(n.ArgList) {
+			s.stack = append(s.stack, &layer{
+				env:  l.env,
+				expr: n.ArgList[l.pc-1],
+			})
+			l.pc++
+		} else {
+			return callee.Accept(s)
+		}
+	} else {
+		if 2 < l.pc && l.pc <= len(n.ArgList)+2 {
+			l.args = append(l.args, s.value)
+		}
+		if l.pc == 0 {
+			s.stack = append(s.stack, &layer{
+				env:  l.env,
+				expr: n.Callee,
+			})
+			l.pc++
+		} else if l.pc == 1 {
+			l.callee = s.value
+			l.pc++
+		} else if l.pc <= len(n.ArgList)+1 {
+			s.stack = append(s.stack, &layer{
+				env:  l.env,
+				expr: n.ArgList[l.pc-2],
+			})
+			l.pc++
+		} else if l.pc == len(n.ArgList)+2 {
+			if closure, ok := l.callee.(*Closure); ok {
+				if len(l.args) != len(closure.Fun.VarList) {
+					return &file.Error{
+						Location: n.GetLocation(),
+						Message:  "wrong number of arguments given to callee",
+					}
+				}
+				newEnv := make([]envItem, len(closure.Env))
+				copy(newEnv, closure.Env)
+				for i, v := range closure.Fun.VarList {
+					addr := l.args[i].GetLocation()
+					if addr == -1 {
+						addr = s.new(l.args[i])
+					}
+					newEnv = append(newEnv, envItem{
+						name:     v.Name,
+						location: addr,
+					})
+				}
+				s.stack = append(s.stack, &layer{
+					env:  newEnv,
+					expr: closure.Fun.Expr,
+				})
+				l.pc++
+			} else if _, ok := l.callee.(*Continuation); ok {
 
-	// 	}
-	// } else {
-	// }
+			} else {
+				return &file.Error{
+					Location: n.Callee.GetLocation(),
+					Message:  "calling non-callable object",
+				}
+			}
+		} else {
+			s.stack = s.stack[:len(s.stack)-1]
+		}
+	}
 	return nil
 }
 
