@@ -30,7 +30,12 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 
 func (s *state) VisitVariableNode(n *ast.VariableNode) *file.Error {
 	l := s.stack[len(s.stack)-1]
-	location := s.lookupEnv(n.Name, l.env)
+	location := -1
+	if n.Kind == ast.Lexical {
+		location = lookupEnv(n.Name, l.env)
+	} else {
+		location = lookupStack(n.Name, s.stack)
+	}
 	if location == -1 {
 		return &file.Error{
 			Location: n.GetLocation(),
@@ -57,7 +62,7 @@ func (s *state) VisitLetrecNode(n *ast.LetrecNode) *file.Error {
 	l := s.stack[len(s.stack)-1]
 	if 1 < l.pc && l.pc <= len(n.VarExprList)+1 {
 		v := n.VarExprList[l.pc-2].Variable
-		lastLocation := s.lookupEnv(v.Name, l.env)
+		lastLocation := lookupEnv(v.Name, l.env)
 		if lastLocation == -1 {
 			panic("this should not happened. panic for testing.") // TODO
 		}
@@ -84,7 +89,6 @@ func (s *state) VisitLetrecNode(n *ast.LetrecNode) *file.Error {
 		})
 		l.pc++
 	} else {
-		l.env = l.env[:len(l.env)-len(n.VarExprList)]
 		s.stack = s.stack[:len(s.stack)-1]
 	}
 	return nil
@@ -166,20 +170,18 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 						Message:  "wrong number of arguments given to callee",
 					}
 				}
-				newEnv := make([]envItem, len(closure.Env))
-				copy(newEnv, closure.Env)
 				for i, v := range closure.Fun.VarList {
 					addr := l.args[i].GetLocation()
 					if addr == -1 {
 						addr = s.new(l.args[i])
 					}
-					newEnv = append(newEnv, envItem{
+					closure.Env = append(closure.Env, envItem{
 						name:     v.Name,
 						location: addr,
 					})
 				}
 				s.stack = append(s.stack, &layer{
-					env:  newEnv,
+					env:  closure.Env,
 					expr: closure.Fun.Expr,
 				})
 				l.pc++

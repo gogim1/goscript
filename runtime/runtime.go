@@ -25,7 +25,7 @@ func NewState(expr ast.ExprNode) *state {
 	return &state{
 		stack: []*layer{
 			{expr: nil},
-			{expr: expr, pc: 0},
+			{expr: expr},
 		},
 	}
 }
@@ -48,10 +48,22 @@ func (s *state) Execute() *file.Error {
 	}
 }
 
-func (s *state) lookupEnv(name string, env []envItem) int {
+func lookupEnv(name string, env []envItem) int {
 	for i := len(env) - 1; i >= 0; i-- {
 		if env[i].name == name {
 			return env[i].location
+		}
+	}
+	return -1
+}
+
+func lookupStack(name string, layers []*layer) int {
+	for i := len(layers) - 1; i >= 0; i-- {
+		l := layers[i]
+		for j := len(l.env) - 1; j >= 0; j-- {
+			if l.env[j].name == name {
+				return l.env[j].location
+			}
 		}
 	}
 	return -1
