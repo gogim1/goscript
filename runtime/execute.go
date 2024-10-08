@@ -32,6 +32,20 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 	l := s.stack[len(s.stack)-1]
 
 	switch n.Name {
+	case "void":
+		s.value = &Void{}
+	case "is_void":
+		if _, ok := l.args[0].(*Void); ok {
+			s.value = &Number{Numerator: 1, Denominator: 1}
+		} else {
+			s.value = &Number{Numerator: 0, Denominator: 1}
+		}
+	case "is_cont":
+		if _, ok := l.args[0].(*Continuation); ok {
+			s.value = &Number{Numerator: 1, Denominator: 1}
+		} else {
+			s.value = &Number{Numerator: 0, Denominator: 1}
+		}
 	case "put":
 		output := ""
 		for _, v := range l.args {
@@ -55,6 +69,19 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		} else {
 			s.value = v
 		}
+	case "callcc":
+		s.stack = s.stack[:len(s.stack)-1]
+		contStack := s.cloneStack()
+		addr := s.new(&Continuation{
+			SourceLocation: n.GetLocation(),
+			Stack:          contStack,
+		})
+		closure := l.args[0].(*Closure)
+		s.stack = append(s.stack, &layer{
+			env:  append(closure.Env, envItem{closure.Fun.VarList[0].Name, addr}),
+			expr: closure.Fun.Expr,
+		})
+		return nil
 	default:
 		return &file.Error{
 			Location: n.GetLocation(),
@@ -222,8 +249,8 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 					expr: closure.Fun.Expr,
 				})
 				l.pc++
-			} else if _, ok := l.callee.(*Continuation); ok {
-
+			} else if continuation, ok := l.callee.(*Continuation); ok {
+				s.restoreStack(continuation.Stack)
 			} else {
 				return &file.Error{
 					Location: n.Callee.GetLocation(),

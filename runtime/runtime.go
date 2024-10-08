@@ -88,6 +88,34 @@ func (s *state) new(value Value) int {
 	return location
 }
 
+func (s *state) cloneStack() []*layer {
+	layers := make([]*layer, len(s.stack))
+	for i, l := range s.stack {
+		layers[i] = &layer{
+			env:    l.env,
+			expr:   l.expr,
+			pc:     l.pc,
+			args:   l.args,
+			callee: l.callee,
+		}
+	}
+
+	return layers
+}
+
+func (s *state) restoreStack(layers []*layer) {
+	s.stack = make([]*layer, len(layers))
+	for i, l := range layers {
+		s.stack[i] = &layer{
+			env:    l.env,
+			expr:   l.expr,
+			pc:     l.pc,
+			args:   l.args,
+			callee: l.callee,
+		}
+	}
+}
+
 func RunCode(src string) (Value, *file.Error) {
 	tokens, err := lexer.Lex(file.NewSource(src))
 	if err != nil {

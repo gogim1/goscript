@@ -74,7 +74,7 @@ func (v *Closure) String() string {
 type Continuation struct {
 	Base
 	SourceLocation file.SourceLocation
-	Stack          []layer
+	Stack          []*layer
 }
 
 func (v *Continuation) String() string {

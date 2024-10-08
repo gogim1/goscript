@@ -12,6 +12,8 @@ import (
 )
 
 var intrinsics = []string{
+	"void",
+	"is_void", "is_cont",
 	"getline", "put",
 	"callcc", "eval", "exit",
 }
