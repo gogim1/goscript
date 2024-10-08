@@ -5,6 +5,8 @@ import (
 
 	"github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/file"
+	"github.com/gogim1/goscript/lexer"
+	"github.com/gogim1/goscript/parser"
 )
 
 type layer struct {
@@ -30,8 +32,8 @@ func NewState(expr ast.ExprNode) *state {
 	}
 }
 
-func (s *state) Value() string {
-	return s.value.String()
+func (s *state) Value() Value {
+	return s.value
 }
 
 func (s *state) Execute() *file.Error {
@@ -84,4 +86,22 @@ func (s *state) new(value Value) int {
 	s.store = append(s.store, value)
 	value.SetLocation(location)
 	return location
+}
+
+func RunCode(src string) (Value, *file.Error) {
+	tokens, err := lexer.Lex(file.NewSource(src))
+	if err != nil {
+		return nil, err
+	}
+
+	node, err := parser.Parse(tokens)
+	if err != nil {
+		return nil, err
+	}
+
+	state := NewState(node)
+	if err = state.Execute(); err != nil {
+		return nil, err
+	}
+	return state.Value(), nil
 }

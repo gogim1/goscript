@@ -43,7 +43,7 @@ func TestRuntime(t *testing.T) {
 
 			state := NewState(node)
 			assert.Nil(t, state.Execute())
-			assert.Equal(t, test.value, state.Value())
+			assert.Equal(t, test.value, state.Value().String())
 		})
 	}
 }

@@ -1,6 +1,10 @@
 package runtime
 
 import (
+	"bufio"
+	"fmt"
+	"os"
+
 	"github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/file"
 )
@@ -25,6 +29,39 @@ func (s *state) VisitStringNode(n *ast.StringNode) *file.Error {
 }
 
 func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
+	l := s.stack[len(s.stack)-1]
+
+	switch n.Name {
+	case "put":
+		output := ""
+		for _, v := range l.args {
+			output += fmt.Sprint(v)
+		}
+		fmt.Print(output)
+		s.value = &Void{}
+	case "getline":
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
+		if err := scanner.Err(); err != nil {
+			s.value = &Void{}
+		} else {
+			s.value = &String{Value: scanner.Text()}
+		}
+	case "eval":
+		// TODO: type check
+		v, err := RunCode(l.args[0].(*String).String())
+		if err != nil {
+			return err
+		} else {
+			s.value = v
+		}
+	default:
+		return &file.Error{
+			Location: n.GetLocation(),
+			Message:  "unrecognized intrinsic function call",
+		}
+	}
+	s.stack = s.stack[:len(s.stack)-1]
 	return nil
 }
 
