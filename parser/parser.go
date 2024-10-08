@@ -13,9 +13,10 @@ import (
 
 var intrinsics = []string{
 	"void",
-	"is_void", "is_cont",
+	"isVoid", "isNum", "isStr", "isCont",
 	"getline", "put",
-	"callcc", "eval", "exit",
+	"reg", "go",
+	"callCC", "eval", "exit",
 }
 
 type parser struct {

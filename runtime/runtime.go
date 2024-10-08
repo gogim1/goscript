@@ -116,7 +116,35 @@ func (s *state) restoreStack(layers []*layer) {
 	}
 }
 
-func RunCode(src string) (Value, *file.Error) {
+func (s *state) CallScriptFunction(name string, args []any) (Value, *file.Error) {
+	sl := file.SourceLocation{Line: -1, Col: -1}
+	callee := ast.NewVariableNode(sl, name, ast.Unknown) // TODO: scope
+	argList := []ast.ExprNode{}
+	for _, arg := range args {
+		switch v := arg.(type) {
+		case string:
+			argList = append(argList, ast.NewStringNode(sl, v))
+		case int:
+			argList = append(argList, ast.NewNumberNode(sl, v, 1))
+		default:
+			return nil, &file.Error{
+				Location: sl,
+				Message:  "golang can only use string/int as arguments when calling goscript functions",
+			}
+		}
+	}
+	s.stack = append(s.stack, &layer{
+		env:  s.stack[0].env,
+		expr: ast.NewCallNode(sl, callee, argList),
+	})
+	err := s.Execute()
+	if err != nil {
+		return nil, err
+	}
+	return s.value, nil
+}
+
+func run(src string) (Value, *file.Error) {
 	tokens, err := lexer.Lex(file.NewSource(src))
 	if err != nil {
 		return nil, err

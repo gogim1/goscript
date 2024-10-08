@@ -34,13 +34,25 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 	switch n.Name {
 	case "void":
 		s.value = &Void{}
-	case "is_void":
+	case "isVoid":
 		if _, ok := l.args[0].(*Void); ok {
 			s.value = &Number{Numerator: 1, Denominator: 1}
 		} else {
 			s.value = &Number{Numerator: 0, Denominator: 1}
 		}
-	case "is_cont":
+	case "isNum":
+		if _, ok := l.args[0].(*Number); ok {
+			s.value = &Number{Numerator: 1, Denominator: 1}
+		} else {
+			s.value = &Number{Numerator: 0, Denominator: 1}
+		}
+	case "isStr":
+		if _, ok := l.args[0].(*String); ok {
+			s.value = &Number{Numerator: 1, Denominator: 1}
+		} else {
+			s.value = &Number{Numerator: 0, Denominator: 1}
+		}
+	case "isCont":
 		if _, ok := l.args[0].(*Continuation); ok {
 			s.value = &Number{Numerator: 1, Denominator: 1}
 		} else {
@@ -62,14 +74,13 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			s.value = &String{Value: scanner.Text()}
 		}
 	case "eval":
-		// TODO: type check
-		v, err := RunCode(l.args[0].(*String).String())
+		v, err := run(l.args[0].(*String).String())
 		if err != nil {
 			return err
 		} else {
 			s.value = v
 		}
-	case "callcc":
+	case "callCC":
 		s.stack = s.stack[:len(s.stack)-1]
 		contStack := s.cloneStack()
 		addr := s.new(&Continuation{
@@ -82,6 +93,16 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			expr: closure.Fun.Expr,
 		})
 		return nil
+	case "reg":
+		addr := l.args[1].GetLocation()
+		if addr == -1 {
+			addr = s.new(l.args[1])
+		}
+		s.stack[0].env = append(s.stack[0].env, envItem{
+			name:     l.args[0].(*String).Value,
+			location: addr,
+		})
+		s.value = &Void{}
 	default:
 		return &file.Error{
 			Location: n.GetLocation(),
@@ -238,6 +259,7 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 					addr := l.args[i].GetLocation()
 					if addr == -1 {
 						addr = s.new(l.args[i])
+
 					}
 					closure.Env = append(closure.Env, envItem{
 						name:     v.Name,
