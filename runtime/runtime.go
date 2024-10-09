@@ -18,9 +18,10 @@ type layer struct {
 }
 
 type state struct {
-	value Value
-	stack []*layer
-	store []Value
+	value       Value
+	stack       []*layer
+	store       []Value
+	goFunctions map[string]func([]Value) Value
 }
 
 func NewState(expr ast.ExprNode) *state {
@@ -29,6 +30,7 @@ func NewState(expr ast.ExprNode) *state {
 			{expr: nil},
 			{expr: expr},
 		},
+		goFunctions: make(map[string]func([]Value) Value),
 	}
 }
 
@@ -142,6 +144,11 @@ func (s *state) CallScriptFunction(name string, args []any) (Value, *file.Error)
 		return nil, err
 	}
 	return s.value, nil
+}
+
+func (s *state) RegisterGolangFunction(name string, fun func([]Value) Value) *state {
+	s.goFunctions[name] = fun
+	return s
 }
 
 func run(src string) (Value, *file.Error) {

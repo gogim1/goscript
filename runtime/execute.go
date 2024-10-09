@@ -103,6 +103,17 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			location: addr,
 		})
 		s.value = &Void{}
+	case "go":
+		goFunName := l.args[0].(*String).Value
+		goArgs := l.args[1:]
+		if f, ok := s.goFunctions[goFunName]; !ok {
+			return &file.Error{
+				Location: n.GetLocation(),
+				Message:  "FFI encountered unregistered function",
+			}
+		} else {
+			s.value = f(goArgs)
+		}
 	default:
 		return &file.Error{
 			Location: n.GetLocation(),
