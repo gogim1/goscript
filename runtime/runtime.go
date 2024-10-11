@@ -1,16 +1,18 @@
 package runtime
 
 import (
-	"unicode"
-
 	"github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/file"
-	"github.com/gogim1/goscript/lexer"
-	"github.com/gogim1/goscript/parser"
 )
 
+type envItem struct {
+	name     string
+	location int
+}
+
 type layer struct {
-	env    []envItem
+	env    *[]envItem
+	frame  bool
 	expr   ast.ExprNode
 	pc     int
 	args   []Value
@@ -25,10 +27,11 @@ type state struct {
 }
 
 func NewState(expr ast.ExprNode) *state {
+	env := new([]envItem)
 	return &state{
 		stack: []*layer{
-			{expr: nil},
-			{expr: expr},
+			{env: env, expr: nil, frame: true},
+			{env: env, expr: expr},
 		},
 		ffi: make(map[string]func(...Value) Value),
 	}
@@ -48,72 +51,6 @@ func (s *state) Execute() *file.Error {
 		err := l.expr.Accept(s)
 		if err != nil {
 			return err
-		}
-	}
-}
-
-func lookupEnv(name string, env []envItem) int {
-	for i := len(env) - 1; i >= 0; i-- {
-		if env[i].name == name {
-			return env[i].location
-		}
-	}
-	return -1
-}
-
-func lookupStack(name string, layers []*layer) int {
-	for i := len(layers) - 1; i >= 0; i-- {
-		l := layers[i]
-		for j := len(l.env) - 1; j >= 0; j-- {
-			if l.env[j].name == name {
-				return l.env[j].location
-			}
-		}
-	}
-	return -1
-}
-
-func (s *state) filterLexical(env []envItem) []envItem {
-	newEnv := []envItem{}
-	for _, item := range env {
-		if len(item.name) > 0 && unicode.IsLower([]rune(item.name)[0]) {
-			newEnv = append(newEnv, item)
-		}
-	}
-	return newEnv
-}
-
-func (s *state) new(value Value) int {
-	location := len(s.heap)
-	s.heap = append(s.heap, value)
-	value.SetLocation(location)
-	return location
-}
-
-func (s *state) cloneStack() []*layer {
-	layers := make([]*layer, len(s.stack))
-	for i, l := range s.stack {
-		layers[i] = &layer{
-			env:    l.env,
-			expr:   l.expr,
-			pc:     l.pc,
-			args:   l.args,
-			callee: l.callee,
-		}
-	}
-
-	return layers
-}
-
-func (s *state) restoreStack(layers []*layer) {
-	s.stack = make([]*layer, len(layers))
-	for i, l := range layers {
-		s.stack[i] = &layer{
-			env:    l.env,
-			expr:   l.expr,
-			pc:     l.pc,
-			args:   l.args,
-			callee: l.callee,
 		}
 	}
 }
@@ -139,8 +76,8 @@ func (s *state) Call(name string, args ...any) (Value, *file.Error) {
 		env:  s.stack[0].env,
 		expr: ast.NewCallNode(sl, callee, argList),
 	})
-	err := s.Execute()
-	if err != nil {
+
+	if err := s.Execute(); err != nil {
 		return nil, err
 	}
 	return s.value, nil
@@ -149,22 +86,4 @@ func (s *state) Call(name string, args ...any) (Value, *file.Error) {
 func (s *state) Register(name string, fun func(...Value) Value) *state {
 	s.ffi[name] = fun
 	return s
-}
-
-func run(src string) (Value, *file.Error) {
-	tokens, err := lexer.Lex(file.NewSource(src))
-	if err != nil {
-		return nil, err
-	}
-
-	node, err := parser.Parse(tokens)
-	if err != nil {
-		return nil, err
-	}
-
-	state := NewState(node)
-	if err = state.Execute(); err != nil {
-		return nil, err
-	}
-	return state.Value(), nil
 }

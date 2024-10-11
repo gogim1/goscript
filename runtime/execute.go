@@ -7,23 +7,46 @@ import (
 
 	"github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/file"
+	"github.com/gogim1/goscript/lexer"
+	"github.com/gogim1/goscript/parser"
 )
 
-func (s *state) VisitNumberNode(n *ast.NumberNode) *file.Error {
-	s.value = &Number{
-		Numerator:   n.Numerator,
-		Denominator: n.Denominator,
+func (s *state) preserve() []*layer {
+	layers := make([]*layer, len(s.stack))
+	deepcopy(&layers, s.stack)
+	return layers
+}
+
+func (s *state) restore(layers []*layer) {
+	deepcopy(&s.stack, layers)
+}
+
+func run(src string) (Value, *file.Error) {
+	tokens, err := lexer.Lex(file.NewSource(src))
+	if err != nil {
+		return nil, err
 	}
-	s.value.SetLocation(-1)
+
+	node, err := parser.Parse(tokens)
+	if err != nil {
+		return nil, err
+	}
+
+	state := NewState(node)
+	if err = state.Execute(); err != nil {
+		return nil, err
+	}
+	return state.Value(), nil
+}
+
+func (s *state) VisitNumberNode(n *ast.NumberNode) *file.Error {
+	s.value = NewNumber(n.Numerator, n.Denominator)
 	s.stack = s.stack[:len(s.stack)-1]
 	return nil
 }
 
 func (s *state) VisitStringNode(n *ast.StringNode) *file.Error {
-	s.value = &String{
-		Value: n.Value,
-	}
-	s.value.SetLocation(-1)
+	s.value = NewString(n.Value)
 	s.stack = s.stack[:len(s.stack)-1]
 	return nil
 }
@@ -33,30 +56,30 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 
 	switch n.Name {
 	case "void":
-		s.value = &Void{}
+		s.value = NewVoid()
 	case "isVoid":
 		if _, ok := l.args[0].(*Void); ok {
-			s.value = &Number{Numerator: 1, Denominator: 1}
+			s.value = NewNumber(1, 1)
 		} else {
-			s.value = &Number{Numerator: 0, Denominator: 1}
+			s.value = NewNumber(0, 1)
 		}
 	case "isNum":
 		if _, ok := l.args[0].(*Number); ok {
-			s.value = &Number{Numerator: 1, Denominator: 1}
+			s.value = NewNumber(1, 1)
 		} else {
-			s.value = &Number{Numerator: 0, Denominator: 1}
+			s.value = NewNumber(0, 1)
 		}
 	case "isStr":
 		if _, ok := l.args[0].(*String); ok {
-			s.value = &Number{Numerator: 1, Denominator: 1}
+			s.value = NewNumber(1, 1)
 		} else {
-			s.value = &Number{Numerator: 0, Denominator: 1}
+			s.value = NewNumber(0, 1)
 		}
 	case "isCont":
 		if _, ok := l.args[0].(*Continuation); ok {
-			s.value = &Number{Numerator: 1, Denominator: 1}
+			s.value = NewNumber(1, 1)
 		} else {
-			s.value = &Number{Numerator: 0, Denominator: 1}
+			s.value = NewNumber(0, 1)
 		}
 	case "put":
 		output := ""
@@ -64,14 +87,14 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			output += fmt.Sprint(v)
 		}
 		fmt.Print(output)
-		s.value = &Void{}
+		s.value = NewVoid()
 	case "getline":
 		scanner := bufio.NewScanner(os.Stdin)
 		scanner.Scan()
 		if err := scanner.Err(); err != nil {
-			s.value = &Void{}
+			s.value = NewVoid()
 		} else {
-			s.value = &String{Value: scanner.Text()}
+			s.value = NewString(scanner.Text())
 		}
 	case "eval":
 		v, err := run(l.args[0].(*String).String())
@@ -82,15 +105,19 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "callCC":
 		s.stack = s.stack[:len(s.stack)-1]
-		contStack := s.cloneStack()
-		addr := s.new(&Continuation{
-			SourceLocation: n.GetLocation(),
-			Stack:          contStack,
-		})
+
+		contStack := s.preserve()
+		addr := s.new(NewContinuation(n.GetLocation(), contStack))
 		closure := l.args[0].(*Closure)
+
+		env := make([]envItem, len(closure.Env))
+		copy(env, closure.Env)
+		env = append(env, envItem{closure.Fun.VarList[0].Name, addr})
+
 		s.stack = append(s.stack, &layer{
-			env:  append(closure.Env, envItem{closure.Fun.VarList[0].Name, addr}),
-			expr: closure.Fun.Expr,
+			env:   &env,
+			frame: true,
+			expr:  closure.Fun.Expr,
 		})
 		return nil
 	case "reg":
@@ -98,11 +125,11 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		if addr == -1 {
 			addr = s.new(l.args[1])
 		}
-		s.stack[0].env = append(s.stack[0].env, envItem{
+		*(s.stack[0].env) = append(*(s.stack[0].env), envItem{
 			name:     l.args[0].(*String).Value,
 			location: addr,
 		})
-		s.value = &Void{}
+		s.value = NewVoid()
 	case "go":
 		name := l.args[0].(*String).Value
 		args := l.args[1:]
@@ -128,7 +155,7 @@ func (s *state) VisitVariableNode(n *ast.VariableNode) *file.Error {
 	l := s.stack[len(s.stack)-1]
 	location := -1
 	if n.Kind == ast.Lexical {
-		location = lookupEnv(n.Name, l.env)
+		location = lookupEnv(n.Name, *l.env)
 	} else {
 		location = lookupStack(n.Name, s.stack)
 	}
@@ -145,11 +172,7 @@ func (s *state) VisitVariableNode(n *ast.VariableNode) *file.Error {
 
 func (s *state) VisitLambdaNode(n *ast.LambdaNode) *file.Error {
 	l := s.stack[len(s.stack)-1]
-	s.value = &Closure{
-		Env: s.filterLexical(l.env),
-		Fun: n,
-	}
-	s.value.SetLocation(-1)
+	s.value = NewClosure(filterLexical(*l.env), n)
 	s.stack = s.stack[:len(s.stack)-1]
 	return nil
 }
@@ -158,7 +181,7 @@ func (s *state) VisitLetrecNode(n *ast.LetrecNode) *file.Error {
 	l := s.stack[len(s.stack)-1]
 	if 1 < l.pc && l.pc <= len(n.VarExprList)+1 {
 		v := n.VarExprList[l.pc-2].Variable
-		lastLocation := lookupEnv(v.Name, l.env)
+		lastLocation := lookupEnv(v.Name, *l.env)
 		if lastLocation == -1 {
 			panic("this should not happened. panic for testing.") // TODO
 		}
@@ -166,9 +189,9 @@ func (s *state) VisitLetrecNode(n *ast.LetrecNode) *file.Error {
 	}
 	if l.pc == 0 {
 		for _, ve := range n.VarExprList {
-			l.env = append(l.env, envItem{
+			*l.env = append(*l.env, envItem{
 				name:     ve.Variable.Name,
-				location: s.new(&Void{}),
+				location: s.new(NewVoid()),
 			})
 		}
 		l.pc++
@@ -185,6 +208,7 @@ func (s *state) VisitLetrecNode(n *ast.LetrecNode) *file.Error {
 		})
 		l.pc++
 	} else {
+		*l.env = (*l.env)[:len(*l.env)-len(n.VarExprList)]
 		s.stack = s.stack[:len(s.stack)-1]
 	}
 	return nil
@@ -266,24 +290,28 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 						Message:  "wrong number of arguments given to callee",
 					}
 				}
+				env := make([]envItem, len(closure.Env))
+				copy(env, closure.Env)
+
 				for i, v := range closure.Fun.VarList {
 					addr := l.args[i].GetLocation()
 					if addr == -1 {
 						addr = s.new(l.args[i])
-
 					}
-					closure.Env = append(closure.Env, envItem{
+					env = append(env, envItem{
 						name:     v.Name,
 						location: addr,
 					})
 				}
 				s.stack = append(s.stack, &layer{
-					env:  closure.Env,
-					expr: closure.Fun.Expr,
+					env:   &env,
+					frame: true,
+					expr:  closure.Fun.Expr,
 				})
 				l.pc++
 			} else if continuation, ok := l.callee.(*Continuation); ok {
-				s.restoreStack(continuation.Stack)
+				s.restore(continuation.Stack)
+				// ?
 			} else {
 				return &file.Error{
 					Location: n.Callee.GetLocation(),

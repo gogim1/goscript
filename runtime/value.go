@@ -10,7 +10,7 @@ import (
 
 type Value interface {
 	GetLocation() int
-	SetLocation(int)
+	SetLocation(int) // ?
 	String() string
 }
 
@@ -34,6 +34,12 @@ func (v *Void) String() string {
 	return "<void>"
 }
 
+func NewVoid() *Void {
+	ret := &Void{}
+	ret.SetLocation(-1)
+	return ret
+}
+
 type Number struct {
 	Base
 	Numerator   int
@@ -47,6 +53,15 @@ func (v *Number) String() string {
 	return strconv.Itoa(v.Numerator) + "/" + strconv.Itoa(v.Denominator)
 }
 
+func NewNumber(n, d int) *Number {
+	ret := &Number{
+		Numerator:   n,
+		Denominator: d,
+	}
+	ret.SetLocation(-1)
+	return ret
+}
+
 type String struct {
 	Base
 	Value string
@@ -56,9 +71,12 @@ func (v *String) String() string {
 	return v.Value
 }
 
-type envItem struct {
-	name     string
-	location int
+func NewString(v string) *String {
+	ret := &String{
+		Value: v,
+	}
+	ret.SetLocation(-1)
+	return ret
 }
 
 type Closure struct {
@@ -71,6 +89,15 @@ func (v *Closure) String() string {
 	return fmt.Sprintf("<closure evaluated at %s>", v.Fun.Location)
 }
 
+func NewClosure(env []envItem, fun *ast.LambdaNode) *Closure {
+	ret := &Closure{
+		Env: env,
+		Fun: fun,
+	}
+	ret.SetLocation(-1)
+	return ret
+}
+
 type Continuation struct {
 	Base
 	SourceLocation file.SourceLocation
@@ -79,4 +106,13 @@ type Continuation struct {
 
 func (v *Continuation) String() string {
 	return fmt.Sprintf("<continuation evaluated at %s>", v.SourceLocation)
+}
+
+func NewContinuation(sl file.SourceLocation, stack []*layer) *Continuation {
+	ret := &Continuation{
+		SourceLocation: sl,
+		Stack:          stack,
+	}
+	ret.SetLocation(-1)
+	return ret
 }

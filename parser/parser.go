@@ -11,7 +11,7 @@ import (
 	"github.com/gogim1/goscript/lexer"
 )
 
-var intrinsics = []string{
+var intrinsics = [...]string{
 	"void",
 	"isVoid", "isNum", "isStr", "isCont",
 	"getline", "put",

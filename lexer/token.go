@@ -21,7 +21,7 @@ type Token struct {
 
 var eof = Token{}
 
-var keyword = []string{
+var keyword = [...]string{
 	"if", "then", "else",
 	"letrec",
 	"lambda",
