@@ -18,10 +18,10 @@ type layer struct {
 }
 
 type state struct {
-	value       Value
-	stack       []*layer
-	store       []Value
-	goFunctions map[string]func([]Value) Value
+	value Value
+	stack []*layer
+	heap  []Value
+	ffi   map[string]func(...Value) Value
 }
 
 func NewState(expr ast.ExprNode) *state {
@@ -30,7 +30,7 @@ func NewState(expr ast.ExprNode) *state {
 			{expr: nil},
 			{expr: expr},
 		},
-		goFunctions: make(map[string]func([]Value) Value),
+		ffi: make(map[string]func(...Value) Value),
 	}
 }
 
@@ -84,8 +84,8 @@ func (s *state) filterLexical(env []envItem) []envItem {
 }
 
 func (s *state) new(value Value) int {
-	location := len(s.store)
-	s.store = append(s.store, value)
+	location := len(s.heap)
+	s.heap = append(s.heap, value)
 	value.SetLocation(location)
 	return location
 }
@@ -118,7 +118,7 @@ func (s *state) restoreStack(layers []*layer) {
 	}
 }
 
-func (s *state) CallScriptFunction(name string, args []any) (Value, *file.Error) {
+func (s *state) Call(name string, args ...any) (Value, *file.Error) {
 	sl := file.SourceLocation{Line: -1, Col: -1}
 	callee := ast.NewVariableNode(sl, name, ast.Unknown) // TODO: scope
 	argList := []ast.ExprNode{}
@@ -146,8 +146,8 @@ func (s *state) CallScriptFunction(name string, args []any) (Value, *file.Error)
 	return s.value, nil
 }
 
-func (s *state) RegisterGolangFunction(name string, fun func([]Value) Value) *state {
-	s.goFunctions[name] = fun
+func (s *state) Register(name string, fun func(...Value) Value) *state {
+	s.ffi[name] = fun
 	return s
 }
 

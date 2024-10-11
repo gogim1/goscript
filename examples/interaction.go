@@ -22,32 +22,40 @@ letrec (
 }
 	`))
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 		return
 	}
 	node, err := parser.Parse(tokens)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 		return
 	}
 	state := runtime.NewState(node)
 	err = state.Execute()
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 		return
 	}
-	v, err := state.CallScriptFunction("test0", nil)
+	v, err := state.Call("test0")
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 		return
 	}
 	fmt.Println(v)
 
-	_, err = state.CallScriptFunction("test1", []any{42})
+	_, err = state.Call("test1", 42)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 		return
 	}
+}
+
+func concat(args ...runtime.Value) runtime.Value {
+	s := ""
+	for _, v := range args {
+		s += v.(*runtime.String).Value
+	}
+	return &runtime.String{Value: s}
 }
 
 // call golang function from goscript
@@ -58,24 +66,17 @@ letrec (s = (go "concat" "hello" " " "world")) {
 }
 	`))
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 		return
 	}
 	node, err := parser.Parse(tokens)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 		return
 	}
-	state := runtime.NewState(node).RegisterGolangFunction("concat", func(args []runtime.Value) runtime.Value {
-		s := ""
-		for _, v := range args {
-			s += v.(*runtime.String).Value
-		}
-		return &runtime.String{Value: s}
-	})
-	err = state.Execute()
+	err = runtime.NewState(node).Register("concat", concat).Execute()
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 		return
 	}
 }

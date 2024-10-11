@@ -104,15 +104,15 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		})
 		s.value = &Void{}
 	case "go":
-		goFunName := l.args[0].(*String).Value
-		goArgs := l.args[1:]
-		if f, ok := s.goFunctions[goFunName]; !ok {
+		name := l.args[0].(*String).Value
+		args := l.args[1:]
+		if f, ok := s.ffi[name]; !ok {
 			return &file.Error{
 				Location: n.GetLocation(),
 				Message:  "FFI encountered unregistered function",
 			}
 		} else {
-			s.value = f(goArgs)
+			s.value = f(args...)
 		}
 	default:
 		return &file.Error{
@@ -138,7 +138,7 @@ func (s *state) VisitVariableNode(n *ast.VariableNode) *file.Error {
 			Message:  "undefined variable",
 		}
 	}
-	s.value = s.store[location]
+	s.value = s.heap[location]
 	s.stack = s.stack[:len(s.stack)-1]
 	return nil
 }
@@ -162,7 +162,7 @@ func (s *state) VisitLetrecNode(n *ast.LetrecNode) *file.Error {
 		if lastLocation == -1 {
 			panic("this should not happened. panic for testing.") // TODO
 		}
-		s.store[lastLocation] = s.value
+		s.heap[lastLocation] = s.value
 	}
 	if l.pc == 0 {
 		for _, ve := range n.VarExprList {
