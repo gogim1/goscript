@@ -13,10 +13,12 @@ import (
 
 var intrinsics = [...]string{
 	"void",
-	"isVoid", "isNum", "isStr", "isCont",
+	"isvoid", "isnum", "isstr", "isclo", "iscont",
+	"add", "sub", "mul", "div", "gt", "ge", "lt", "le", "eq", "ne", "and", "or", "not",
+	"strquote", "eval",
 	"getline", "put",
 	"reg", "go",
-	"callCC", "eval", "exit",
+	"callcc", "exit",
 }
 
 func isIntrinsic(name string) bool {

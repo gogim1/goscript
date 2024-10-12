@@ -7,6 +7,13 @@ import (
 	"github.com/gogim1/goscript/file"
 )
 
+func gcd(x, y int) int {
+	for y != 0 {
+		x, y = y, x%y
+	}
+	return x
+}
+
 func filterLexical(env []envItem) []envItem {
 	newEnv := []envItem{}
 	for _, item := range env {

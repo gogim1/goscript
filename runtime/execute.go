@@ -61,41 +61,187 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			return err
 		}
 		s.value = NewVoid()
-	case "isVoid":
+	case "isvoid":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
 			return err
 		}
 		if _, ok := l.args[0].(*Void); ok {
-			s.value = NewNumber(1, 1)
+			s.value = trueValue
 		} else {
-			s.value = NewNumber(0, 1)
+			s.value = falseValue
 		}
-	case "isNum":
+	case "isnum":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
 			return err
 		}
 		if _, ok := l.args[0].(*Number); ok {
-			s.value = NewNumber(1, 1)
+			s.value = trueValue
 		} else {
-			s.value = NewNumber(0, 1)
+			s.value = falseValue
 		}
-	case "isStr":
+	case "isstr":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
 			return err
 		}
 		if _, ok := l.args[0].(*String); ok {
-			s.value = NewNumber(1, 1)
+			s.value = trueValue
 		} else {
-			s.value = NewNumber(0, 1)
+			s.value = falseValue
 		}
-	case "isCont":
+	case "isclo":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
+			return err
+		}
+		if _, ok := l.args[0].(*Closure); ok {
+			s.value = trueValue
+		} else {
+			s.value = falseValue
+		}
+	case "iscont":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
 			return err
 		}
 		if _, ok := l.args[0].(*Continuation); ok {
-			s.value = NewNumber(1, 1)
+			s.value = trueValue
 		} else {
-			s.value = NewNumber(0, 1)
+			s.value = falseValue
+		}
+	case "add":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
+			return err
+		}
+		s.value = l.args[0].(*Number).add(l.args[1].(*Number))
+	case "sub":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
+			return err
+		}
+		s.value = l.args[0].(*Number).sub(l.args[1].(*Number))
+	case "mul":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
+			return err
+		}
+		s.value = l.args[0].(*Number).mul(l.args[1].(*Number))
+	case "div":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
+			return err
+		}
+		if l.args[1].(*Number).Numerator == 0 {
+			return &file.Error{
+				Location: l.expr.GetLocation(),
+				Message:  "division by zero",
+			}
+		}
+		s.value = l.args[0].(*Number).div(l.args[1].(*Number))
+	case "lt":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
+			return err
+		}
+		if l.args[0].(*Number).lt(l.args[1].(*Number)) {
+			s.value = trueValue
+		} else {
+			s.value = falseValue
+		}
+	case "gt":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
+			return err
+		}
+		if l.args[1].(*Number).lt(l.args[0].(*Number)) {
+			s.value = trueValue
+		} else {
+			s.value = falseValue
+		}
+	case "ge":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
+			return err
+		}
+		if !l.args[0].(*Number).lt(l.args[1].(*Number)) {
+			s.value = trueValue
+		} else {
+			s.value = falseValue
+		}
+	case "le":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
+			return err
+		}
+		if !l.args[1].(*Number).lt(l.args[0].(*Number)) {
+			s.value = trueValue
+		} else {
+			s.value = falseValue
+		}
+	case "eq":
+		if len(l.args) != 2 || reflect.TypeOf(l.args[0]) != reflect.TypeOf(l.args[1]) ||
+			reflect.TypeOf(l.args[0]) != NumberType || reflect.TypeOf(l.args[0]) != StringType {
+			return &file.Error{
+				Location: l.expr.GetLocation(),
+				Message:  "wrong number/type of arguments given to eq",
+			}
+		}
+		if lhs, ok := l.args[0].(*Number); ok {
+			rhs := l.args[1].(*Number)
+			if !lhs.lt(rhs) && !rhs.lt(lhs) {
+				s.value = trueValue
+			} else {
+				s.value = falseValue
+			}
+		} else {
+			lhs := l.args[0].(*String)
+			rhs := l.args[1].(*String)
+			if lhs.Value == rhs.Value {
+				s.value = trueValue
+			} else {
+				s.value = falseValue
+			}
+		}
+	case "ne":
+		if len(l.args) != 2 || reflect.TypeOf(l.args[0]) != reflect.TypeOf(l.args[1]) ||
+			reflect.TypeOf(l.args[0]) != NumberType || reflect.TypeOf(l.args[0]) != StringType {
+			return &file.Error{
+				Location: l.expr.GetLocation(),
+				Message:  "wrong number/type of arguments given to eq",
+			}
+		}
+		if lhs, ok := l.args[0].(*Number); ok {
+			rhs := l.args[1].(*Number)
+			if lhs.lt(rhs) || rhs.lt(lhs) {
+				s.value = trueValue
+			} else {
+				s.value = falseValue
+			}
+		} else {
+			lhs := l.args[0].(*String)
+			rhs := l.args[1].(*String)
+			if lhs.Value != rhs.Value {
+				s.value = trueValue
+			} else {
+				s.value = falseValue
+			}
+		}
+	case "and":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
+			return err
+		}
+		if l.args[0].(*Number).Numerator != 0 && l.args[1].(*Number).Numerator != 0 {
+			s.value = trueValue
+		} else {
+			s.value = falseValue
+		}
+	case "or":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
+			return err
+		}
+		if l.args[0].(*Number).Numerator != 0 || l.args[1].(*Number).Numerator != 0 {
+			s.value = trueValue
+		} else {
+			s.value = falseValue
+		}
+	case "not":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType}); err != nil {
+			return err
+		}
+		if l.args[0].(*Number).Numerator == 0 {
+			s.value = trueValue
+		} else {
+			s.value = falseValue
 		}
 	case "put":
 		if len(l.args) == 0 {
@@ -131,7 +277,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		} else {
 			s.value = v
 		}
-	case "callCC":
+	case "callcc":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ClosureType}); err != nil {
 			return err
 		}
@@ -351,7 +497,6 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 				l.pc++
 			} else if continuation, ok := l.callee.(*Continuation); ok {
 				s.restore(continuation.Stack)
-				// ?
 			} else {
 				return &file.Error{
 					Location: n.Callee.GetLocation(),

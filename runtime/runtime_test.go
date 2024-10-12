@@ -32,9 +32,9 @@ func TestRuntime(t *testing.T) {
 		{`((lambda (a) { lambda (a) { a } } 1) 2)`, `2`},
 		{`(lambda (a) { (lambda (b c) { c } a a) } 1)`, `1`},
 		{`(lambda (a) { [(lambda (a) { a } 1) a] } 2)`, `2`},
-		{`(callCC lambda (k) { k })`, `<continuation evaluated at (SourceLocation 1 1)>`},
-		{`(callCC lambda (k) { 1 })`, `1`},
-		{`(callCC lambda (k) { [(k 1) 2] })`, `1`},
+		{`(callcc lambda (k) { k })`, `<continuation evaluated at (SourceLocation 1 1)>`},
+		{`(callcc lambda (k) { 1 })`, `1`},
+		{`(callcc lambda (k) { [(k 1) 2] })`, `1`},
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {

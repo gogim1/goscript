@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 
@@ -63,6 +64,44 @@ func (v *Number) String() string {
 	return strconv.Itoa(v.Numerator) + "/" + strconv.Itoa(v.Denominator)
 }
 
+func (v *Number) add(other *Number) *Number {
+	n1 := v.Numerator*other.Denominator + other.Numerator*v.Denominator
+	d1 := v.Denominator * other.Denominator
+	g1 := gcd(int(math.Abs(float64(n1))), d1)
+	return NewNumber(n1/g1, d1/g1)
+}
+
+func (v *Number) sub(other *Number) *Number {
+	n1 := v.Numerator*other.Denominator - other.Numerator*v.Denominator
+	d1 := v.Denominator * other.Denominator
+	g1 := gcd(int(math.Abs(float64(n1))), d1)
+	return NewNumber(n1/g1, d1/g1)
+}
+
+func (v *Number) mul(other *Number) *Number {
+	n1 := v.Numerator * other.Numerator
+	d1 := v.Denominator * other.Denominator
+	g1 := gcd(int(math.Abs(float64(n1))), d1)
+	return NewNumber(n1/g1, d1/g1)
+}
+
+func (v *Number) div(other *Number) *Number {
+	n1 := v.Numerator * other.Denominator
+	d1 := v.Denominator * other.Numerator
+	if d1 < 0 {
+		n1 = -n1
+		d1 = -d1
+	}
+	g1 := gcd(int(math.Abs(float64(n1))), d1)
+	return NewNumber(n1/g1, d1/g1)
+}
+
+func (v *Number) lt(other *Number) bool {
+	lhs := v.Numerator * other.Denominator
+	rhs := v.Denominator * other.Numerator
+	return lhs < rhs
+}
+
 func NewNumber(n, d int) *Number {
 	ret := &Number{
 		Numerator:   n,
@@ -71,6 +110,11 @@ func NewNumber(n, d int) *Number {
 	ret.SetLocation(-1)
 	return ret
 }
+
+var (
+	trueValue  = NewNumber(1, 1)
+	falseValue = NewNumber(0, 1)
+)
 
 type String struct {
 	Base
