@@ -6,8 +6,10 @@ import (
 	"github.com/gogim1/goscript/file"
 	"github.com/gogim1/goscript/lexer"
 	"github.com/gogim1/goscript/parser"
+	"github.com/gogim1/goscript/runtime"
 	. "github.com/gogim1/goscript/runtime"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRuntime(t *testing.T) {
@@ -39,10 +41,10 @@ func TestRuntime(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
 			tokens, err := lexer.Lex(file.NewSource(test.input))
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			node, err := parser.Parse(tokens)
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			state := NewState(node)
 			assert.Nil(t, state.Execute())
@@ -70,4 +72,35 @@ func TestRuntime_error(t *testing.T) {
 			assert.NotNil(t, state.Execute())
 		})
 	}
+}
+
+func TestRuntimeInteraction(t *testing.T) {
+	t.Run("call script function", func(t *testing.T) {
+		tokens, err := lexer.Lex(file.NewSource(`
+		letrec (
+			v = 1
+		) {
+			[
+				(reg "test0" lambda(){ v })
+				(reg "test1" lambda(v){ v })
+			]
+		}
+			`))
+		require.Nil(t, err)
+
+		node, err := parser.Parse(tokens)
+		require.Nil(t, err)
+
+		state := runtime.NewState(node)
+		err = state.Execute()
+		require.Nil(t, err)
+
+		v, err := state.Call("test0")
+		assert.Nil(t, err)
+		assert.True(t, v != nil && v.String() == `1`)
+
+		v, err = state.Call("test1", 42)
+		assert.Nil(t, err)
+		assert.True(t, v != nil && v.String() == `42`)
+	})
 }

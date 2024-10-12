@@ -305,10 +305,11 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		if addr == -1 {
 			addr = s.new(l.args[1])
 		}
-		*(s.stack[0].env) = append(*(s.stack[0].env), envItem{
+
+		*(s.stack[0].env) = append([]envItem{{
 			name:     l.args[0].(*String).Value,
 			location: addr,
-		})
+		}}, *(s.stack[0].env)...)
 		s.value = NewVoid()
 	case "go":
 		if len(l.args) == 0 || reflect.TypeOf(l.args[0]) != StringType {
@@ -371,7 +372,7 @@ func (s *state) VisitLetrecNode(n *ast.LetrecNode) *file.Error {
 		if lastLocation == -1 {
 			panic("this should not happened. panic for testing.") // TODO
 		}
-		s.heap[lastLocation] = s.value
+		s.heap[lastLocation] = s.value // update value location?
 	}
 	if l.pc == 0 {
 		for _, ve := range n.VarExprList {

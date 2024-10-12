@@ -8,6 +8,7 @@ import (
 	"github.com/gogim1/goscript/lexer"
 	. "github.com/gogim1/goscript/parser"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParse(t *testing.T) {
@@ -197,7 +198,7 @@ func TestParse(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
 			tokens, err := lexer.Lex(file.NewSource(test.input))
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			node, err := Parse(tokens)
 			assert.Nil(t, err)
