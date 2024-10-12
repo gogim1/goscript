@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 
 	"github.com/gogim1/goscript/ast"
@@ -10,7 +11,7 @@ import (
 
 type Value interface {
 	GetLocation() int
-	SetLocation(int) // ?
+	SetLocation(int)
 	String() string
 }
 
@@ -25,6 +26,15 @@ func (n *Base) GetLocation() int {
 func (n *Base) SetLocation(l int) {
 	n.Location = l
 }
+
+var (
+	ValueType        = reflect.TypeOf(new(Value)).Elem()
+	VoidType         = reflect.TypeOf(Void{})
+	StringType       = reflect.TypeOf(String{})
+	NumberType       = reflect.TypeOf(Number{})
+	ClosureType      = reflect.TypeOf(Closure{})
+	ContinuationType = reflect.TypeOf(Continuation{})
+)
 
 type Void struct {
 	Base

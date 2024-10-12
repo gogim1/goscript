@@ -19,6 +19,15 @@ var intrinsics = [...]string{
 	"callCC", "eval", "exit",
 }
 
+func isIntrinsic(name string) bool {
+	for _, intrinsic := range intrinsics {
+		if name == intrinsic {
+			return true
+		}
+	}
+	return false
+}
+
 type parser struct {
 	tokens    []*lexer.Token
 	currIndex int
@@ -244,14 +253,8 @@ func (p *parser) parseIntrinsic() (*IntrinsicNode, *file.Error) {
 	if err != nil {
 		return nil, err
 	}
-	isIntrinsic := false
-	for _, kw := range intrinsics {
-		if kw == currToken.Source {
-			isIntrinsic = true
-			break
-		}
-	}
-	if !isIntrinsic {
+
+	if !isIntrinsic(currToken.Source) {
 		return nil, &file.Error{Location: currToken.Location, Message: "incorrect intrinsic"}
 	}
 	return NewIntrinsicNode(currToken.Location, currToken.Source), nil
@@ -265,11 +268,10 @@ func (p *parser) parseVariable() (*VariableNode, *file.Error) {
 		return nil, err
 	}
 
-	for _, kw := range intrinsics {
-		if kw == currToken.Source {
-			return nil, &file.Error{Location: currToken.Location, Message: "incorrect variable name"}
-		}
+	if isIntrinsic(currToken.Source) {
+		return nil, &file.Error{Location: currToken.Location, Message: "incorrect variable name"}
 	}
+
 	kind := Lexical
 	if unicode.IsUpper([]rune(currToken.Source)[0]) {
 		kind = Dynamic
@@ -288,15 +290,8 @@ func (p *parser) parseCall() (*CallNode, *file.Error) {
 	}
 	currToken := p.tokens[p.currIndex]
 
-	isIntrinsic := false
-	for _, kw := range intrinsics {
-		if kw == currToken.Source {
-			isIntrinsic = true
-			break
-		}
-	}
 	var callee ExprNode
-	if isIntrinsic {
+	if isIntrinsic(currToken.Source) {
 		callee, err = p.parseIntrinsic()
 		if err != nil {
 			return nil, err

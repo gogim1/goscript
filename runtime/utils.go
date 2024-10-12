@@ -1,6 +1,11 @@
 package runtime
 
-import "unicode"
+import (
+	"reflect"
+	"unicode"
+
+	"github.com/gogim1/goscript/file"
+)
 
 func filterLexical(env []envItem) []envItem {
 	newEnv := []envItem{}
@@ -53,4 +58,22 @@ func deepcopy(dst *[]*layer, src []*layer) {
 		(*dst)[i].env = &env
 		(*dst)[i].args = args
 	}
+}
+
+func typeCheck(sl file.SourceLocation, values []Value, types []reflect.Type) *file.Error {
+	if len(values) != len(types) {
+		return &file.Error{
+			Location: sl,
+			Message:  "wrong number of arguments given to callee",
+		}
+	}
+	for i, v := range values {
+		if types[i] != ValueType && reflect.TypeOf(v).Elem() != types[i] {
+			return &file.Error{
+				Location: sl,
+				Message:  "wrong type of arguments given to callee",
+			}
+		}
+	}
+	return nil
 }

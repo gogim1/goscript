@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/file"
@@ -56,32 +57,53 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 
 	switch n.Name {
 	case "void":
+		if err := typeCheck(l.expr.GetLocation(), l.args, nil); err != nil {
+			return err
+		}
 		s.value = NewVoid()
 	case "isVoid":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
+			return err
+		}
 		if _, ok := l.args[0].(*Void); ok {
 			s.value = NewNumber(1, 1)
 		} else {
 			s.value = NewNumber(0, 1)
 		}
 	case "isNum":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
+			return err
+		}
 		if _, ok := l.args[0].(*Number); ok {
 			s.value = NewNumber(1, 1)
 		} else {
 			s.value = NewNumber(0, 1)
 		}
 	case "isStr":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
+			return err
+		}
 		if _, ok := l.args[0].(*String); ok {
 			s.value = NewNumber(1, 1)
 		} else {
 			s.value = NewNumber(0, 1)
 		}
 	case "isCont":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
+			return err
+		}
 		if _, ok := l.args[0].(*Continuation); ok {
 			s.value = NewNumber(1, 1)
 		} else {
 			s.value = NewNumber(0, 1)
 		}
 	case "put":
+		if len(l.args) == 0 {
+			return &file.Error{
+				Location: l.expr.GetLocation(),
+				Message:  "wrong number of arguments given to put",
+			}
+		}
 		output := ""
 		for _, v := range l.args {
 			output += fmt.Sprint(v)
@@ -89,6 +111,9 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		fmt.Print(output)
 		s.value = NewVoid()
 	case "getline":
+		if err := typeCheck(l.expr.GetLocation(), l.args, nil); err != nil {
+			return err
+		}
 		scanner := bufio.NewScanner(os.Stdin)
 		scanner.Scan()
 		if err := scanner.Err(); err != nil {
@@ -97,6 +122,9 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			s.value = NewString(scanner.Text())
 		}
 	case "eval":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{StringType}); err != nil {
+			return err
+		}
 		v, err := run(l.args[0].(*String).String())
 		if err != nil {
 			return err
@@ -104,10 +132,13 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			s.value = v
 		}
 	case "callCC":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ClosureType}); err != nil {
+			return err
+		}
 		s.stack = s.stack[:len(s.stack)-1]
 
 		contStack := s.preserve()
-		addr := s.new(NewContinuation(n.GetLocation(), contStack))
+		addr := s.new(NewContinuation(l.expr.GetLocation(), contStack))
 		closure := l.args[0].(*Closure)
 
 		env := make([]envItem, len(closure.Env))
@@ -121,6 +152,9 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		})
 		return nil
 	case "reg":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{StringType, ClosureType}); err != nil {
+			return err
+		}
 		addr := l.args[1].GetLocation()
 		if addr == -1 {
 			addr = s.new(l.args[1])
@@ -131,11 +165,17 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		})
 		s.value = NewVoid()
 	case "go":
+		if len(l.args) == 0 || reflect.TypeOf(l.args[0]) != StringType {
+			return &file.Error{
+				Location: l.expr.GetLocation(),
+				Message:  "FFI expects a string (Golang function name) as the first argument",
+			}
+		}
 		name := l.args[0].(*String).Value
 		args := l.args[1:]
 		if f, ok := s.ffi[name]; !ok {
 			return &file.Error{
-				Location: n.GetLocation(),
+				Location: l.expr.GetLocation(),
 				Message:  "FFI encountered unregistered function",
 			}
 		} else {
@@ -143,7 +183,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	default:
 		return &file.Error{
-			Location: n.GetLocation(),
+			Location: l.expr.GetLocation(),
 			Message:  "unrecognized intrinsic function call",
 		}
 	}
