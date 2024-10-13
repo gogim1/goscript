@@ -289,6 +289,14 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		} else {
 			s.value = NewString(scanner.Text())
 		}
+	case "strquote":
+		panic("TODO")
+	case "concat":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{StringType, StringType}); err != nil {
+			s.value = NewVoid()
+			return err
+		}
+		s.value = NewString(l.args[0].(*String).Value + (l.args[1].(*String)).Value)
 	case "eval":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{StringType}); err != nil {
 			s.value = NewVoid()

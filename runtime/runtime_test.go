@@ -95,6 +95,7 @@ func TestRuntime_error(t *testing.T) {
 		`(callcc 1)`,
 		`(reg "func" 1)`,
 		`(go 1)`,
+		`(concat 1 2)`,
 	}
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {
@@ -241,6 +242,7 @@ func TestIntrinsics(t *testing.T) {
 		{`(not 1)`, `0`},
 		{`(not 2)`, `0`},
 		{`(not 0)`, `1`},
+		{`(concat "hello" "world")`, `helloworld`},
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
