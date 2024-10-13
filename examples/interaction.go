@@ -55,7 +55,7 @@ func concat(args ...runtime.Value) runtime.Value {
 	for _, v := range args {
 		s += v.(*runtime.String).Value
 	}
-	return &runtime.String{Value: s}
+	return runtime.NewString(s)
 }
 
 // call golang function from goscript

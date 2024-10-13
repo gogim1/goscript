@@ -126,6 +126,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			return err
 		}
 		if l.args[1].(*Number).Numerator == 0 {
+			s.value = NewVoid()
 			return &file.Error{
 				Location: l.expr.GetLocation(),
 				Message:  "division by zero",
@@ -170,7 +171,8 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "eq":
 		if len(l.args) != 2 || reflect.TypeOf(l.args[0]) != reflect.TypeOf(l.args[1]) ||
-			reflect.TypeOf(l.args[0]) != NumberType || reflect.TypeOf(l.args[0]) != StringType {
+			reflect.TypeOf(l.args[0]).Elem() != NumberType || reflect.TypeOf(l.args[0]).Elem() != StringType {
+			s.value = NewVoid()
 			return &file.Error{
 				Location: l.expr.GetLocation(),
 				Message:  "wrong number/type of arguments given to eq",
@@ -194,7 +196,8 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "ne":
 		if len(l.args) != 2 || reflect.TypeOf(l.args[0]) != reflect.TypeOf(l.args[1]) ||
-			reflect.TypeOf(l.args[0]) != NumberType || reflect.TypeOf(l.args[0]) != StringType {
+			reflect.TypeOf(l.args[0]).Elem() != NumberType || reflect.TypeOf(l.args[0]).Elem() != StringType {
+			s.value = NewVoid()
 			return &file.Error{
 				Location: l.expr.GetLocation(),
 				Message:  "wrong number/type of arguments given to eq",
@@ -245,6 +248,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "put":
 		if len(l.args) == 0 {
+			s.value = NewVoid()
 			return &file.Error{
 				Location: l.expr.GetLocation(),
 				Message:  "wrong number of arguments given to put",
@@ -312,7 +316,8 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}}, *(s.stack[0].env)...)
 		s.value = NewVoid()
 	case "go":
-		if len(l.args) == 0 || reflect.TypeOf(l.args[0]) != StringType {
+		if len(l.args) == 0 || reflect.TypeOf(l.args[0]).Elem() != StringType {
+			s.value = NewVoid()
 			return &file.Error{
 				Location: l.expr.GetLocation(),
 				Message:  "FFI expects a string (Golang function name) as the first argument",
@@ -321,6 +326,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		name := l.args[0].(*String).Value
 		args := l.args[1:]
 		if f, ok := s.ffi[name]; !ok {
+			s.value = NewVoid()
 			return &file.Error{
 				Location: l.expr.GetLocation(),
 				Message:  "FFI encountered unregistered function",
@@ -329,6 +335,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			s.value = f(args...)
 		}
 	default:
+		s.value = NewVoid()
 		return &file.Error{
 			Location: l.expr.GetLocation(),
 			Message:  "unrecognized intrinsic function call",
@@ -347,6 +354,7 @@ func (s *state) VisitVariableNode(n *ast.VariableNode) *file.Error {
 		location = lookupStack(n.Name, s.stack)
 	}
 	if location == -1 {
+		s.value = NewVoid()
 		return &file.Error{
 			Location: n.GetLocation(),
 			Message:  "undefined variable",
@@ -411,6 +419,7 @@ func (s *state) VisitIfNode(n *ast.IfNode) *file.Error {
 		l.pc++
 	} else if l.pc == 1 {
 		if v, ok := s.value.(*Number); !ok {
+			s.value = NewVoid()
 			return &file.Error{
 				Location: n.Cond.GetLocation(),
 				Message:  "wrong condition type",
@@ -472,6 +481,7 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 		} else if l.pc == len(n.ArgList)+2 {
 			if closure, ok := l.callee.(*Closure); ok {
 				if len(l.args) != len(closure.Fun.VarList) {
+					s.value = NewVoid()
 					return &file.Error{
 						Location: n.GetLocation(),
 						Message:  "wrong number of arguments given to callee",
@@ -499,6 +509,7 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 			} else if continuation, ok := l.callee.(*Continuation); ok {
 				s.restore(continuation.Stack)
 			} else {
+				s.value = NewVoid()
 				return &file.Error{
 					Location: n.Callee.GetLocation(),
 					Message:  "calling non-callable object",

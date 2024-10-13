@@ -3,6 +3,7 @@ package runtime_test
 import (
 	"testing"
 
+	"github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/file"
 	"github.com/gogim1/goscript/lexer"
 	"github.com/gogim1/goscript/parser"
@@ -11,6 +12,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func lexAndParse(t *testing.T, src string) ast.ExprNode {
+	tokens, err := lexer.Lex(file.NewSource(src))
+	require.Nil(t, err)
+
+	node, err := parser.Parse(tokens)
+	require.Nil(t, err)
+
+	return node
+}
 
 func TestRuntime(t *testing.T) {
 	tests := []struct {
@@ -40,13 +51,7 @@ func TestRuntime(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
-			tokens, err := lexer.Lex(file.NewSource(test.input))
-			require.Nil(t, err)
-
-			node, err := parser.Parse(tokens)
-			require.Nil(t, err)
-
-			state := NewState(node)
+			state := NewState(lexAndParse(t, test.input))
 			assert.Nil(t, state.Execute())
 			assert.Equal(t, test.value, state.Value().String())
 		})
@@ -62,37 +67,30 @@ func TestRuntime_error(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {
-			tokens, err := lexer.Lex(file.NewSource(test))
-			assert.Nil(t, err)
-
-			node, err := parser.Parse(tokens)
-			assert.Nil(t, err)
-
-			state := NewState(node)
+			state := NewState(lexAndParse(t, test))
 			assert.NotNil(t, state.Execute())
+			assert.Equal(t, NewVoid(), state.Value())
 		})
 	}
 }
 
 func TestRuntimeInteraction(t *testing.T) {
 	t.Run("call script function", func(t *testing.T) {
-		tokens, err := lexer.Lex(file.NewSource(`
+		src := `
 		letrec (
 			v = 1
 		) {
 			[
 				(reg "test0" lambda(){ v })
 				(reg "test1" lambda(v){ v })
+				(reg "test1" lambda(v){ (add v 1) })  # doesn't work
+				(reg "test2" lambda(v){ (add v 1) })  # v should be Number
 			]
 		}
-			`))
-		require.Nil(t, err)
+			`
 
-		node, err := parser.Parse(tokens)
-		require.Nil(t, err)
-
-		state := runtime.NewState(node)
-		err = state.Execute()
+		state := runtime.NewState(lexAndParse(t, src))
+		err := state.Execute()
 		require.Nil(t, err)
 
 		v, err := state.Call("test0")
@@ -102,5 +100,65 @@ func TestRuntimeInteraction(t *testing.T) {
 		v, err = state.Call("test1", 42)
 		assert.Nil(t, err)
 		assert.True(t, v != nil && v.String() == `42`)
+
+		v, err = state.Call("test0", 1)
+		assert.NotNil(t, err)
+		assert.Nil(t, v)
+
+		v, err = state.Call("test3")
+		assert.NotNil(t, err)
+		assert.Nil(t, v)
+
+		v, err = state.Call("test2", "string")
+		assert.NotNil(t, err)
+		assert.Nil(t, v)
+	})
+
+	t.Run("call golang function", func(t *testing.T) {
+		plus1 := func(args ...runtime.Value) runtime.Value {
+			arg := args[0].(*Number)
+			return runtime.NewNumber(arg.Numerator+arg.Denominator, arg.Numerator)
+		}
+
+		src := `(go "plus1" 1)`
+		state := runtime.NewState(lexAndParse(t, src)).Register("plus1", plus1)
+		assert.Nil(t, state.Execute())
+		assert.Equal(t, `2`, state.Value().String())
+
+		plus1 = func(args ...runtime.Value) runtime.Value {
+			return runtime.NewNumber(0, 1)
+		}
+		assert.Nil(t, state.Execute())
+		assert.Equal(t, `2`, state.Value().String())
+
+		str := func(args ...runtime.Value) runtime.Value {
+			return runtime.NewString("string")
+		}
+		src = `(go "str")`
+		state = runtime.NewState(lexAndParse(t, src)).Register("str", str)
+		assert.Nil(t, state.Execute())
+		assert.Equal(t, `string`, state.Value().String())
+
+		state = runtime.NewState(lexAndParse(t, src)).Register("str", plus1).Register("str", str)
+		assert.Nil(t, state.Execute())
+		assert.Equal(t, `string`, state.Value().String())
+
+		src = `(go "str" (go "plus1" 1))`
+		state = runtime.NewState(lexAndParse(t, src)).Register("plus1", plus1).Register("str", str)
+		assert.Nil(t, state.Execute())
+		assert.Equal(t, `string`, state.Value().String())
+
+		src = `(go "unknown")`
+		state = runtime.NewState(lexAndParse(t, src))
+		assert.NotNil(t, state.Execute())
+		assert.Equal(t, NewVoid(), state.Value())
+
+		// TODO: should we handle panics?
+		// raise := func(args ...runtime.Value) runtime.Value {
+		// 	panic("error")
+		// }
+		// src = `(go "raise")`
+		// state = runtime.NewState(lexAndParse(t, src)).Register("raise", raise)
+		// assert.NotNil(t, state.Execute())
 	})
 }
