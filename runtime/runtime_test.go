@@ -31,6 +31,7 @@ func TestRuntime(t *testing.T) {
 		{`"hello world"`, `hello world`},
 		{`[1/1 "2" 3]`, `3`},
 		{`if 1 then 2 else 3`, `2`},
+		{`if 0 then 2 else 3`, `3`},
 		{`letrec () {1.1}`, `11/10`},
 		{`letrec (a=1 b=2) {"hello world"}`, `hello world`},
 		{`letrec (a=1 b=2) {a}`, `1`},
@@ -64,12 +65,44 @@ func TestRuntime_error(t *testing.T) {
 		`[letrec (a = 1) {a} a]`,
 		`(lambda () { 1 } 2)`,
 		`letrec (a = 1) {(a)}`,
+		`(void 1)`,
+		`(isvoid)`,
+		`(isnum)`,
+		`(isstr)`,
+		`(isclo)`,
+		`(iscont)`,
+		`(add 1)`,
+		`(add "1" 2)`,
+		`(sub "1" 2)`,
+		`(mul 1 "2")`,
+		`(div 1 "2")`,
+		`(div 1 0)`,
+		`(lt "1" "2")`,
+		`(gt "1" "2")`,
+		`(le "1" "2")`,
+		`(ge "1" "2")`,
+		`(eq 1 "2")`,
+		`(eq "1" (void))`,
+		`(ne 1 "2")`,
+		`(ne "1" (void))`,
+		`(and "1" "1")`,
+		`(or "1" "1")`,
+		`(not "1")`,
+		`(not "1")`,
+		`(getline "1")`,
+		`(put)`,
+		`(eval 1)`,
+		`(callcc 1)`,
+		`(reg "func" 1)`,
+		`(go 1)`,
 	}
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {
 			state := NewState(lexAndParse(t, test))
-			assert.NotNil(t, state.Execute())
+			err := state.Execute()
+			assert.NotNil(t, err)
 			assert.Equal(t, NewVoid(), state.Value())
+			t.Log(err)
 		})
 	}
 }
@@ -161,4 +194,59 @@ func TestRuntimeInteraction(t *testing.T) {
 		// state = runtime.NewState(lexAndParse(t, src)).Register("raise", raise)
 		// assert.NotNil(t, state.Execute())
 	})
+}
+
+func TestIntrinsics(t *testing.T) {
+	tests := []struct {
+		input, value string
+	}{
+		{`(void)`, `<void>`},
+		{`(isvoid 1)`, `0`},
+		{`(isvoid (void))`, `1`},
+		{`(isnum 0)`, `1`},
+		{`(isnum "1")`, `0`},
+		{`(isstr 1)`, `0`},
+		{`(isstr "1")`, `1`},
+		{`(isclo 1)`, `0`},
+		{`(isclo lambda () { 0 })`, `1`},
+		{`(iscont (callcc lambda(k) { (k k) }))`, `1`},
+		{`(iscont (callcc lambda(k) { 1 }))`, `0`},
+		{`(add 1 2)`, `3`},
+		{`(add 0.3 2/3)`, `29/30`},
+		{`(sub 1 2)`, `-1`},
+		{`(mul 1 2)`, `2`},
+		{`(div 9 -3)`, `-3`},
+		{`(lt 1 2)`, `1`},
+		{`(lt 2 1)`, `0`},
+		{`(gt 1 2)`, `0`},
+		{`(gt 2 1)`, `1`},
+		{`(le 2 2)`, `1`},
+		{`(le 2 1)`, `0`},
+		{`(ge 1 2)`, `0`},
+		{`(ge 1 1)`, `1`},
+		{`(eq 1 1)`, `1`},
+		{`(eq 1 2)`, `0`},
+		{`(eq "1" "1")`, `1`},
+		{`(eq "1" "2")`, `0`},
+		{`(ne 1 1)`, `0`},
+		{`(ne 1 2)`, `1`},
+		{`(ne "1" "1")`, `0`},
+		{`(ne "1" "2")`, `1`},
+		{`(and 1 1)`, `1`},
+		{`(and 1 0)`, `0`},
+		{`(and 2 3)`, `1`},
+		{`(or 0 1)`, `1`},
+		{`(or 0 0)`, `0`},
+		{`(or 2 3)`, `1`},
+		{`(not 1)`, `0`},
+		{`(not 2)`, `0`},
+		{`(not 0)`, `1`},
+	}
+	for _, test := range tests {
+		t.Run(test.input, func(t *testing.T) {
+			state := NewState(lexAndParse(t, test.input))
+			assert.Nil(t, state.Execute())
+			assert.Equal(t, test.value, state.Value().String())
+		})
+	}
 }
