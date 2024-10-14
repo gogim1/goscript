@@ -1,0 +1,27 @@
+letrec (
+  try = lambda (try catch finally) {
+    letrec (
+      cc = (callcc lambda (k) { (k k) })
+    ) {
+      if (iscont cc) then [(try cc) (finally)] 
+      else [(catch cc) (finally)]
+    }
+  }
+) {
+    (try 
+      lambda (throw) {[
+        (put "enter `try` block\n") 
+        (throw "message")
+        (put "exit `try` block\n") 
+      ]} 
+      lambda (exception) {[ 
+        (put "enter `catch` block\n" )
+        (put "Exception: " exception "\n" )
+        (put "exit `catch` block\n" )
+      ]} 
+      lambda () {[
+        (put "enter `finally` block\n") 
+        (put "exit `finally` block\n") 
+      ]}
+    )
+}

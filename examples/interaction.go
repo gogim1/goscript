@@ -83,5 +83,5 @@ letrec (s = (go "concat" "hello" " " "world")) {
 
 func main() {
 	func1()
-	// func2()
+	func2()
 }

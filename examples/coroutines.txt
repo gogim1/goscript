@@ -1,21 +1,21 @@
 letrec (
-  getCC = lambda () {
+  getcc = lambda () {
     (callcc lambda (k) { (k k) })
   }
   task = lambda (yield) {
     [
-    letrec (c = (getCC)) {
-      if (isCont c) then (yield c) # jump to main
+    letrec (c = (getcc)) {
+      if (iscont c) then (yield c) # jump to main
       else (void)
     }
     (put "task 1\n")
-    letrec (c = (getCC)) {
-      if (isCont c) then (yield c)
+    letrec (c = (getcc)) {
+      if (iscont c) then (yield c)
       else (void)
     }
     (put "task 2\n")
-    letrec (c = (getCC)) {
-      if (isCont c) then (yield c)
+    letrec (c = (getcc)) {
+      if (iscont c) then (yield c)
       else (void)
     }
     (put "task 3\n")
@@ -25,7 +25,7 @@ letrec (
   letrec (
     c = (callcc task)
   ) {
-    if (isCont c) then [
+    if (iscont c) then [
     (put "main\n")
     (c (void)) # jump to task
     ]
