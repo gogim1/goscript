@@ -13,12 +13,12 @@ import (
 func func1() {
 	tokens, err := lexer.Lex(file.NewSource(`
 letrec (
-	v = 1
+  v = 1
 ) {
-	[
-		(reg "test0" lambda(){ v })
-		(reg "test1" lambda(v){ (put v "\n") })
-	]
+    [
+      (reg "test0" lambda(){ v })
+      (reg "test1" lambda(v){ (put v "\n") })
+    ]
 }
 	`))
 	if err != nil {
@@ -62,7 +62,7 @@ func concat(args ...runtime.Value) runtime.Value {
 func func2() {
 	tokens, err := lexer.Lex(file.NewSource(`
 letrec (s = (go "concat" "hello" " " "world")) {
-	(put s "\n")
+  (put s "\n")
 }
 	`))
 	if err != nil {
