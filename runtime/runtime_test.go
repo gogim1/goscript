@@ -49,6 +49,8 @@ func TestRuntime(t *testing.T) {
 		{`(callcc lambda (k) { k })`, `<continuation evaluated at (SourceLocation 1 1)>`},
 		{`(callcc lambda (k) { 1 })`, `1`},
 		{`(callcc lambda (k) { [(k 1) 2] })`, `1`},
+		{`&v letrec (v=1) {lambda () { 1 }}`, `1`},
+		{`&v (lambda (v) { lambda () { 0 } } 1)`, `1`},
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
@@ -96,6 +98,8 @@ func TestRuntime_error(t *testing.T) {
 		`(reg "func" 1)`,
 		`(go 1)`,
 		`(concat 1 2)`,
+		`&v lambda () { 1 }`,
+		`&v "string"`,
 	}
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {

@@ -194,6 +194,22 @@ func TestParse(t *testing.T) {
 				},
 			},
 		},
+		{
+			`&a b`,
+			&AccessNode{
+				Base: Base{Location: file.SourceLocation{Line: 1, Col: 1}},
+				Variable: &VariableNode{
+					Base: Base{Location: file.SourceLocation{Line: 1, Col: 2}},
+					Name: "a",
+					Kind: Lexical,
+				},
+				Expr: &VariableNode{
+					Base: Base{Location: file.SourceLocation{Line: 1, Col: 4}},
+					Name: "b",
+					Kind: Lexical,
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
@@ -247,6 +263,10 @@ func TestParse_error(t *testing.T) {
 		{
 			"malformed call #2",
 			`(`,
+		},
+		{
+			"incorrect access",
+			`&letrec`,
 		},
 	}
 	for _, test := range tests {

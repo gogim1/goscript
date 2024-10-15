@@ -358,6 +358,24 @@ func (p *parser) parseSequence() (*SequenceNode, *file.Error) {
 	return NewSequenceNode(start.Location, exprList), nil
 }
 
+func (p *parser) parseAccess() (*AccessNode, *file.Error) {
+	start, err := p.consume(func(token *lexer.Token) bool { return token.Source == "&" })
+	if err != nil {
+		return nil, err
+	}
+
+	variable, err := p.parseVariable()
+	if err != nil {
+		return nil, err
+	}
+	expr, err := p.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewAccessNode(start.Location, variable, expr), nil
+}
+
 func (p *parser) parseExpr() (ExprNode, *file.Error) {
 	if p.currIndex >= len(p.tokens) {
 		return nil, &file.Error{
@@ -383,6 +401,8 @@ func (p *parser) parseExpr() (ExprNode, *file.Error) {
 		return p.parseCall()
 	} else if currToken.Source == "[" {
 		return p.parseSequence()
+	} else if currToken.Source == "&" {
+		return p.parseAccess()
 	} else {
 		return nil, &file.Error{Location: currToken.Location, Message: "unrecognized token"}
 	}

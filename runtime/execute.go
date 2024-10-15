@@ -566,6 +566,33 @@ func (s *state) VisitSequenceNode(n *ast.SequenceNode) *file.Error {
 }
 
 func (s *state) VisitAccessNode(n *ast.AccessNode) *file.Error {
+	l := s.stack[len(s.stack)-1]
+	if l.pc == 0 {
+		s.stack = append(s.stack, &layer{
+			env:  l.env,
+			expr: n.Expr,
+		})
+		l.pc++
+	} else {
+		if closure, ok := s.value.(*Closure); ok {
+			location := lookupEnv(n.Variable.Name, closure.Env)
+			if location == -1 {
+				s.value = NewVoid()
+				return &file.Error{
+					Location: n.GetLocation(),
+					Message:  "undefined variable",
+				}
+			}
+			s.value = s.heap[location]
+			s.stack = s.stack[:len(s.stack)-1]
+		} else {
+			s.value = NewVoid()
+			return &file.Error{
+				Location: n.GetLocation(),
+				Message:  "lexical variable access applied to non-closure type",
+			}
+		}
+	}
 	return nil
 }
 
