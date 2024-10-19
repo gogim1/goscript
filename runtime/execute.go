@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 
 	"github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/file"
@@ -289,8 +290,13 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		} else {
 			s.value = NewString(scanner.Text())
 		}
-	case "strquote":
-		panic("TODO")
+	case "quote":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{StringType}); err != nil {
+			s.value = NewVoid()
+			return err
+		}
+		str := l.args[0].(*String).Value
+		s.value = NewString(strconv.Quote(str))
 	case "concat":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{StringType, StringType}); err != nil {
 			s.value = NewVoid()
