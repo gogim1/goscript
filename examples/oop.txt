@@ -1,0 +1,32 @@
+letrec (
+  makeBase = lambda () {
+    lambda (call) {
+      letrec (
+        F = lambda () { 1 }
+        G = lambda () { 2 }
+      ) { (call) }
+    }
+  }
+  makeDerived = lambda () {
+    lambda (call) {
+      letrec (
+        base = (makeBase)       # reuse the base class (inheritance)
+        F = lambda () { 100 }   # override F
+      ) { 
+        (base call)
+      }
+    }
+  }
+) {
+  letrec (
+    base = (makeBase)
+    derived = (makeDerived)
+  ) {
+    [
+      (put (base lambda () { (F) }) "\n")
+      (put (base lambda () { (G) }) "\n")
+      (put (derived lambda () { (F) }) "\n")
+      (put (derived lambda () { (G) }) "\n")
+    ]
+  }
+}
