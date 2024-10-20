@@ -42,14 +42,30 @@ func run(src string) (Value, *file.Error) {
 	return state.Value(), nil
 }
 
+func retrieveNumberValue(numerator, denominator int) Value {
+	if denominator == 1 && numValue[numerator] != nil {
+		return numValue[numerator]
+	} else {
+		return NewNumber(numerator, denominator)
+	}
+}
+
 func (s *state) VisitNumberNode(n *ast.NumberNode) *file.Error {
-	s.value = NewNumber(n.Numerator, n.Denominator)
+	s.value = retrieveNumberValue(n.Numerator, n.Denominator)
 	s.stack = s.stack[:len(s.stack)-1]
 	return nil
 }
 
+func retrieveStringValue(v string) Value {
+	if len(v) == 0 {
+		return emptyStrValue
+	} else {
+		return NewString(v)
+	}
+}
+
 func (s *state) VisitStringNode(n *ast.StringNode) *file.Error {
-	s.value = NewString(n.Value)
+	s.value = retrieveStringValue(n.Value)
 	s.stack = s.stack[:len(s.stack)-1]
 	return nil
 }
@@ -60,13 +76,13 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 	switch n.Name {
 	case "void":
 		if err := typeCheck(l.expr.GetLocation(), l.args, nil); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
-		s.value = NewVoid()
+		s.value = voidValue
 	case "isvoid":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		if _, ok := l.args[0].(*Void); ok {
@@ -76,7 +92,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "isnum":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		if _, ok := l.args[0].(*Number); ok {
@@ -86,7 +102,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "isstr":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		if _, ok := l.args[0].(*String); ok {
@@ -96,7 +112,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "isclo":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		if _, ok := l.args[0].(*Closure); ok {
@@ -106,7 +122,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "iscont":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		if _, ok := l.args[0].(*Continuation); ok {
@@ -116,42 +132,42 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "add":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
 		n1 := lhs.Numerator*rhs.Denominator + rhs.Numerator*lhs.Denominator
 		d1 := lhs.Denominator * rhs.Denominator
 		g1 := gcd(int(math.Abs(float64(n1))), d1)
-		s.value = NewNumber(n1/g1, d1/g1)
+		s.value = retrieveNumberValue(n1/g1, d1/g1)
 	case "sub":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
 		n1 := lhs.Numerator*rhs.Denominator - rhs.Numerator*lhs.Denominator
 		d1 := lhs.Denominator * rhs.Denominator
 		g1 := gcd(int(math.Abs(float64(n1))), d1)
-		s.value = NewNumber(n1/g1, d1/g1)
+		s.value = retrieveNumberValue(n1/g1, d1/g1)
 	case "mul":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
 		n1 := lhs.Numerator * rhs.Numerator
 		d1 := lhs.Denominator * rhs.Denominator
 		g1 := gcd(int(math.Abs(float64(n1))), d1)
-		s.value = NewNumber(n1/g1, d1/g1)
+		s.value = retrieveNumberValue(n1/g1, d1/g1)
 	case "div":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
 		if rhs.Numerator == 0 {
-			s.value = NewVoid()
+			s.value = voidValue
 			return &file.Error{
 				Location: l.expr.GetLocation(),
 				Message:  "division by zero",
@@ -164,10 +180,10 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			d1 = -d1
 		}
 		g1 := gcd(int(math.Abs(float64(n1))), d1)
-		s.value = NewNumber(n1/g1, d1/g1)
+		s.value = retrieveNumberValue(n1/g1, d1/g1)
 	case "lt":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
@@ -178,7 +194,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "gt":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
@@ -189,7 +205,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "ge":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
@@ -200,7 +216,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "le":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
@@ -212,7 +228,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 	case "eq":
 		if len(l.args) != 2 || reflect.TypeOf(l.args[0]) != reflect.TypeOf(l.args[1]) ||
 			(reflect.TypeOf(l.args[0]).Elem() != NumberType && reflect.TypeOf(l.args[0]).Elem() != StringType) {
-			s.value = NewVoid()
+			s.value = voidValue
 			return &file.Error{
 				Location: l.expr.GetLocation(),
 				Message:  "wrong number/type of arguments given to eq",
@@ -236,7 +252,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 	case "ne":
 		if len(l.args) != 2 || reflect.TypeOf(l.args[0]) != reflect.TypeOf(l.args[1]) ||
 			(reflect.TypeOf(l.args[0]).Elem() != NumberType && reflect.TypeOf(l.args[0]).Elem() != StringType) {
-			s.value = NewVoid()
+			s.value = voidValue
 			return &file.Error{
 				Location: l.expr.GetLocation(),
 				Message:  "wrong number/type of arguments given to eq",
@@ -259,7 +275,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "and":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		if l.args[0].(*Number).Numerator != 0 && l.args[1].(*Number).Numerator != 0 {
@@ -269,7 +285,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "or":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		if l.args[0].(*Number).Numerator != 0 || l.args[1].(*Number).Numerator != 0 {
@@ -279,7 +295,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "not":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		if l.args[0].(*Number).Numerator == 0 {
@@ -289,7 +305,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "put":
 		if len(l.args) == 0 {
-			s.value = NewVoid()
+			s.value = voidValue
 			return &file.Error{
 				Location: l.expr.GetLocation(),
 				Message:  "wrong number of arguments given to put",
@@ -300,35 +316,35 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			output += fmt.Sprint(v)
 		}
 		fmt.Print(output)
-		s.value = NewVoid()
+		s.value = voidValue
 	case "getline":
 		if err := typeCheck(l.expr.GetLocation(), l.args, nil); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		scanner := bufio.NewScanner(os.Stdin)
 		scanner.Scan()
 		if err := scanner.Err(); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 		} else {
-			s.value = NewString(scanner.Text())
+			s.value = retrieveStringValue(scanner.Text())
 		}
 	case "quote":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{StringType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		str := l.args[0].(*String).Value
-		s.value = NewString(strconv.Quote(str))
+		s.value = retrieveStringValue(strconv.Quote(str))
 	case "concat":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{StringType, StringType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
-		s.value = NewString(l.args[0].(*String).Value + (l.args[1].(*String)).Value)
+		s.value = retrieveStringValue(l.args[0].(*String).Value + (l.args[1].(*String)).Value)
 	case "eval":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{StringType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		v, err := run(l.args[0].(*String).String())
@@ -339,7 +355,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		}
 	case "callcc":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ClosureType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		s.stack = s.stack[:len(s.stack)-1]
@@ -360,17 +376,17 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		return nil
 	case "reg":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{StringType, ClosureType}); err != nil {
-			s.value = NewVoid()
+			s.value = voidValue
 			return err
 		}
 		*(s.stack[0].env) = append([]envItem{{
 			name:     l.args[0].(*String).Value,
 			location: s.new(l.args[1]),
 		}}, *(s.stack[0].env)...)
-		s.value = NewVoid()
+		s.value = voidValue
 	case "go":
 		if len(l.args) == 0 || reflect.TypeOf(l.args[0]).Elem() != StringType {
-			s.value = NewVoid()
+			s.value = voidValue
 			return &file.Error{
 				Location: l.expr.GetLocation(),
 				Message:  "FFI expects a string (Golang function name) as the first argument",
@@ -379,7 +395,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 		name := l.args[0].(*String).Value
 		args := l.args[1:]
 		if f, ok := s.ffi[name]; !ok {
-			s.value = NewVoid()
+			s.value = voidValue
 			return &file.Error{
 				Location: l.expr.GetLocation(),
 				Message:  "FFI encountered unregistered function",
@@ -388,7 +404,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			s.value = f(args...)
 		}
 	default:
-		s.value = NewVoid()
+		s.value = voidValue
 		return &file.Error{
 			Location: l.expr.GetLocation(),
 			Message:  "unrecognized intrinsic function call",
@@ -407,7 +423,7 @@ func (s *state) VisitVariableNode(n *ast.VariableNode) *file.Error {
 		location = lookupStack(n.Name, s.stack)
 	}
 	if location == -1 {
-		s.value = NewVoid()
+		s.value = voidValue
 		return &file.Error{
 			Location: n.GetLocation(),
 			Message:  "undefined variable",
@@ -433,13 +449,13 @@ func (s *state) VisitLetrecNode(n *ast.LetrecNode) *file.Error {
 		if lastLocation == -1 {
 			panic("this should not happened. panic for testing.")
 		}
-		s.heap[lastLocation] = s.value // update value location?
+		s.heap[lastLocation] = s.value
 	}
 	if l.pc == 0 {
 		for _, ve := range n.VarExprList {
 			*l.env = append(*l.env, envItem{
 				name:     ve.Variable.Name,
-				location: s.new(NewVoid()),
+				location: s.new(voidValue),
 			})
 		}
 		l.pc++
@@ -472,7 +488,7 @@ func (s *state) VisitIfNode(n *ast.IfNode) *file.Error {
 		l.pc++
 	} else if l.pc == 1 {
 		if v, ok := s.value.(*Number); !ok {
-			s.value = NewVoid()
+			s.value = voidValue
 			return &file.Error{
 				Location: n.Cond.GetLocation(),
 				Message:  "wrong condition type",
@@ -534,7 +550,7 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 		} else if l.pc == len(n.ArgList)+2 {
 			if closure, ok := l.callee.(*Closure); ok {
 				if len(l.args) != len(closure.Fun.VarList) {
-					s.value = NewVoid()
+					s.value = voidValue
 					return &file.Error{
 						Location: n.GetLocation(),
 						Message:  "wrong number of arguments given to callee",
@@ -558,7 +574,7 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 			} else if continuation, ok := l.callee.(*Continuation); ok {
 				s.restore(continuation.Stack)
 			} else {
-				s.value = NewVoid()
+				s.value = voidValue
 				return &file.Error{
 					Location: n.Callee.GetLocation(),
 					Message:  "calling non-callable object",
@@ -597,7 +613,7 @@ func (s *state) VisitAccessNode(n *ast.AccessNode) *file.Error {
 		if closure, ok := s.value.(*Closure); ok {
 			location := lookupEnv(n.Variable.Name, closure.Env)
 			if location == -1 {
-				s.value = NewVoid()
+				s.value = voidValue
 				return &file.Error{
 					Location: n.GetLocation(),
 					Message:  "undefined variable",
@@ -606,7 +622,7 @@ func (s *state) VisitAccessNode(n *ast.AccessNode) *file.Error {
 			s.value = s.heap[location]
 			s.stack = s.stack[:len(s.stack)-1]
 		} else {
-			s.value = NewVoid()
+			s.value = voidValue
 			return &file.Error{
 				Location: n.GetLocation(),
 				Message:  "lexical variable access applied to non-closure type",

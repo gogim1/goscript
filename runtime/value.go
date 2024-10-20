@@ -65,11 +65,6 @@ func (v *Number) lt(other *Number) bool {
 	return lhs < rhs
 }
 
-var (
-	trueValue  = NewNumber(1, 1)
-	falseValue = NewNumber(0, 1)
-)
-
 type String struct {
 	Base
 	Value string
