@@ -1,8 +1,6 @@
 package runtime
 
 import (
-	"fmt"
-
 	"github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/file"
 )
@@ -57,7 +55,7 @@ func (s *state) Execute() *file.Error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("[Note] GC collected %d cells\n", s.gc())
+		s.gc()
 	}
 }
 

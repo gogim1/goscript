@@ -11,8 +11,6 @@ import (
 )
 
 type Value interface {
-	GetLocation() int
-	SetLocation(int)
 	GetId() int64
 	SetId(int64)
 	String() string
@@ -21,14 +19,6 @@ type Value interface {
 type Base struct {
 	Location int
 	Id       int64
-}
-
-func (n *Base) GetLocation() int {
-	return n.Location
-}
-
-func (n *Base) SetLocation(l int) {
-	n.Location = l
 }
 
 func (n *Base) GetId() int64 {
@@ -113,7 +103,6 @@ var globalId int64 = 0
 
 func NewVoid() *Void {
 	ret := &Void{}
-	ret.SetLocation(-1)
 	id := atomic.AddInt64(&globalId, 1)
 	ret.SetId(id)
 	return ret
@@ -124,7 +113,6 @@ func NewNumber(n, d int) *Number {
 		Numerator:   n,
 		Denominator: d,
 	}
-	ret.SetLocation(-1)
 	id := atomic.AddInt64(&globalId, 1)
 	ret.SetId(id)
 	return ret
@@ -134,7 +122,6 @@ func NewString(v string) *String {
 	ret := &String{
 		Value: v,
 	}
-	ret.SetLocation(-1)
 	id := atomic.AddInt64(&globalId, 1)
 	ret.SetId(id)
 	return ret
@@ -145,7 +132,6 @@ func NewClosure(env []envItem, fun *ast.LambdaNode) *Closure {
 		Env: env,
 		Fun: fun,
 	}
-	ret.SetLocation(-1)
 	id := atomic.AddInt64(&globalId, 1)
 	ret.SetId(id)
 	return ret
@@ -156,7 +142,6 @@ func NewContinuation(sl file.SourceLocation, stack []*layer) *Continuation {
 		SourceLocation: sl,
 		Stack:          stack,
 	}
-	ret.SetLocation(-1)
 	id := atomic.AddInt64(&globalId, 1)
 	ret.SetId(id)
 	return ret

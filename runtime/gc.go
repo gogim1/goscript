@@ -7,7 +7,6 @@ import (
 func (s *state) new(value Value) int {
 	location := len(s.heap)
 	s.heap = append(s.heap, value)
-	value.SetLocation(location)
 	return location
 }
 
@@ -79,7 +78,6 @@ func (c *collector) sweep() {
 	for j := 0; j < len(c.heap); j++ {
 		if _, ok := c.locations[j]; ok {
 			c.heap[i] = c.heap[j]
-			c.heap[i].SetLocation(i)
 			c.relocation[j] = i
 			i++
 		}

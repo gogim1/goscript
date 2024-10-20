@@ -363,14 +363,9 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			s.value = NewVoid()
 			return err
 		}
-		addr := l.args[1].GetLocation()
-		if addr == -1 {
-			addr = s.new(l.args[1])
-		}
-
 		*(s.stack[0].env) = append([]envItem{{
 			name:     l.args[0].(*String).Value,
-			location: addr,
+			location: s.new(l.args[1]),
 		}}, *(s.stack[0].env)...)
 		s.value = NewVoid()
 	case "go":
@@ -549,13 +544,9 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 				copy(env, closure.Env)
 
 				for i, v := range closure.Fun.VarList {
-					addr := l.args[i].GetLocation()
-					if addr == -1 {
-						addr = s.new(l.args[i])
-					}
 					env = append(env, envItem{
 						name:     v.Name,
-						location: addr,
+						location: s.new(l.args[i]),
 					})
 				}
 				s.stack = append(s.stack, &layer{
