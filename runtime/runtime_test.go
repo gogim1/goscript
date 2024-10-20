@@ -248,6 +248,10 @@ func TestIntrinsics(t *testing.T) {
 		{`(not 2)`, `0`},
 		{`(not 0)`, `1`},
 		{`(concat "hello" "world")`, `helloworld`},
+		{`(id (void))`, `3`},
+		{`(eq (id (void)) (id (void)))`, `1`},
+		{`(eq (id 1) (id 2))`, `0`},
+		{`(eq (id "str") (id "str"))`, `0`},
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {

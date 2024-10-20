@@ -80,6 +80,12 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			return err
 		}
 		s.value = voidValue
+	case "id":
+		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
+			s.value = voidValue
+			return err
+		}
+		s.value = retrieveNumberValue(int(l.args[0].GetId()), 1)
 	case "isvoid":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{ValueType}); err != nil {
 			s.value = voidValue

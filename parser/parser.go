@@ -12,7 +12,7 @@ import (
 )
 
 var intrinsics = [...]string{
-	"void",
+	"void", "id",
 	"isvoid", "isnum", "isstr", "isclo", "iscont",
 	"add", "sub", "mul", "div", "gt", "ge", "lt", "le", "eq", "ne", "and", "or", "not",
 	"quote", "concat", "eval",
