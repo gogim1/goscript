@@ -164,21 +164,6 @@ func NewSequenceNode(sl file.SourceLocation, el []ExprNode) *SequenceNode {
 	return node
 }
 
-type QueryNode struct {
-	Base
-	Variable *VariableNode
-	ExprBox  []ExprNode
-}
-
-func NewQueryNode(sl file.SourceLocation, v *VariableNode, eb []ExprNode) *QueryNode {
-	node := &QueryNode{
-		Base:     Base{Location: sl},
-		Variable: v,
-		ExprBox:  eb,
-	}
-	return node
-}
-
 type AccessNode struct {
 	Base
 	Variable *VariableNode

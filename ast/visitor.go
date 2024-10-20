@@ -13,7 +13,6 @@ type Visitor interface {
 	VisitCallNode(*CallNode) *file.Error
 	VisitSequenceNode(*SequenceNode) *file.Error
 	VisitAccessNode(*AccessNode) *file.Error
-	VisitQueryNode(*QueryNode) *file.Error
 }
 
 func (n *NumberNode) Accept(v Visitor) *file.Error {
@@ -54,8 +53,4 @@ func (n *SequenceNode) Accept(v Visitor) *file.Error {
 
 func (n *AccessNode) Accept(v Visitor) *file.Error {
 	return v.VisitAccessNode(n)
-}
-
-func (n *QueryNode) Accept(v Visitor) *file.Error {
-	return v.VisitQueryNode(n)
 }

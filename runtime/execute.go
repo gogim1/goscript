@@ -615,7 +615,3 @@ func (s *state) VisitAccessNode(n *ast.AccessNode) *file.Error {
 	}
 	return nil
 }
-
-func (s *state) VisitQueryNode(n *ast.QueryNode) *file.Error {
-	return nil
-}
