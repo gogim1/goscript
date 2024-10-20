@@ -62,8 +62,8 @@ func (c *collector) traverse(value Value, visitor func(Value)) {
 }
 
 func (c *collector) mark() {
-	c.values = make(map[int64]struct{})
-	c.locations = make(map[int]struct{})
+	clear(c.values)
+	clear(c.locations)
 
 	c.traverse(NewContinuation(file.SourceLocation{Line: -1, Col: -1}, c.stack), nil)
 	if c.value != nil {
@@ -72,8 +72,11 @@ func (c *collector) mark() {
 }
 
 func (c *collector) sweep() {
-	c.relocation = make(map[int]int)
+	clear(c.relocation)
 
+	if len(c.locations) == len(c.heap) {
+		return
+	}
 	i := 0
 	for j := 0; j < len(c.heap); j++ {
 		if _, ok := c.locations[j]; ok {
@@ -87,9 +90,12 @@ func (c *collector) sweep() {
 }
 
 func (c *collector) relocate() {
-	c.values = make(map[int64]struct{})
-	c.locations = make(map[int]struct{})
+	clear(c.values)
+	clear(c.locations)
 
+	if len(c.relocation) == 0 {
+		return
+	}
 	patcher := func(value Value) {
 		if closure, ok := value.(*Closure); ok {
 			for i, item := range closure.Env {

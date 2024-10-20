@@ -39,6 +39,9 @@ func NewState(expr ast.ExprNode) *state {
 		ffi: make(map[string]func(...Value) Value),
 	}
 	s.collector.state = s
+	s.collector.values = make(map[int64]struct{})
+	s.collector.locations = make(map[int]struct{})
+	s.collector.relocation = make(map[int]int)
 	return s
 }
 
