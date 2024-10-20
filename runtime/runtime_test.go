@@ -106,7 +106,7 @@ func TestRuntime_error(t *testing.T) {
 			state := NewState(lexAndParse(t, test))
 			err := state.Execute()
 			assert.NotNil(t, err)
-			assert.Equal(t, NewVoid(), state.Value())
+			assert.Equal(t, "<void>", state.Value().String())
 			t.Log(err)
 		})
 	}
@@ -189,7 +189,7 @@ func TestRuntimeInteraction(t *testing.T) {
 		src = `(go "unknown")`
 		state = runtime.NewState(lexAndParse(t, src))
 		assert.NotNil(t, state.Execute())
-		assert.Equal(t, NewVoid(), state.Value())
+		assert.Equal(t, "<void>", state.Value().String())
 
 		// TODO: should we handle panics?
 		// raise := func(args ...runtime.Value) runtime.Value {

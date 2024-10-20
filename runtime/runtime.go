@@ -1,6 +1,8 @@
 package runtime
 
 import (
+	"fmt"
+
 	"github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/file"
 )
@@ -20,6 +22,7 @@ type layer struct {
 }
 
 type state struct {
+	collector
 	value Value
 	stack []*layer
 	heap  []Value
@@ -28,13 +31,15 @@ type state struct {
 
 func NewState(expr ast.ExprNode) *state {
 	env := new([]envItem)
-	return &state{
+	s := &state{
 		stack: []*layer{
 			{env: env, expr: nil, frame: true},
 			{env: env, expr: expr},
 		},
 		ffi: make(map[string]func(...Value) Value),
 	}
+	s.collector.state = s
+	return s
 }
 
 func (s *state) Value() Value {
@@ -52,6 +57,7 @@ func (s *state) Execute() *file.Error {
 		if err != nil {
 			return err
 		}
+		fmt.Printf("[Note] GC collected %d cells\n", s.gc())
 	}
 }
 

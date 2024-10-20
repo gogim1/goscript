@@ -3,6 +3,7 @@ package runtime
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"reflect"
 	"strconv"
@@ -118,38 +119,59 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			s.value = NewVoid()
 			return err
 		}
-		s.value = l.args[0].(*Number).add(l.args[1].(*Number))
+		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
+		n1 := lhs.Numerator*rhs.Denominator + rhs.Numerator*lhs.Denominator
+		d1 := lhs.Denominator * rhs.Denominator
+		g1 := gcd(int(math.Abs(float64(n1))), d1)
+		s.value = NewNumber(n1/g1, d1/g1)
 	case "sub":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
 			s.value = NewVoid()
 			return err
 		}
-		s.value = l.args[0].(*Number).sub(l.args[1].(*Number))
+		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
+		n1 := lhs.Numerator*rhs.Denominator - rhs.Numerator*lhs.Denominator
+		d1 := lhs.Denominator * rhs.Denominator
+		g1 := gcd(int(math.Abs(float64(n1))), d1)
+		s.value = NewNumber(n1/g1, d1/g1)
 	case "mul":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
 			s.value = NewVoid()
 			return err
 		}
-		s.value = l.args[0].(*Number).mul(l.args[1].(*Number))
+		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
+		n1 := lhs.Numerator * rhs.Numerator
+		d1 := lhs.Denominator * rhs.Denominator
+		g1 := gcd(int(math.Abs(float64(n1))), d1)
+		s.value = NewNumber(n1/g1, d1/g1)
 	case "div":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
 			s.value = NewVoid()
 			return err
 		}
-		if l.args[1].(*Number).Numerator == 0 {
+		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
+		if rhs.Numerator == 0 {
 			s.value = NewVoid()
 			return &file.Error{
 				Location: l.expr.GetLocation(),
 				Message:  "division by zero",
 			}
 		}
-		s.value = l.args[0].(*Number).div(l.args[1].(*Number))
+		n1 := lhs.Numerator * rhs.Denominator
+		d1 := lhs.Denominator * rhs.Numerator
+		if d1 < 0 {
+			n1 = -n1
+			d1 = -d1
+		}
+		g1 := gcd(int(math.Abs(float64(n1))), d1)
+		s.value = NewNumber(n1/g1, d1/g1)
 	case "lt":
 		if err := typeCheck(l.expr.GetLocation(), l.args, []reflect.Type{NumberType, NumberType}); err != nil {
 			s.value = NewVoid()
 			return err
 		}
-		if l.args[0].(*Number).lt(l.args[1].(*Number)) {
+		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
+		if lhs.lt(rhs) {
 			s.value = trueValue
 		} else {
 			s.value = falseValue
@@ -159,7 +181,8 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			s.value = NewVoid()
 			return err
 		}
-		if l.args[1].(*Number).lt(l.args[0].(*Number)) {
+		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
+		if rhs.lt(lhs) {
 			s.value = trueValue
 		} else {
 			s.value = falseValue
@@ -169,7 +192,8 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			s.value = NewVoid()
 			return err
 		}
-		if !l.args[0].(*Number).lt(l.args[1].(*Number)) {
+		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
+		if !lhs.lt(rhs) {
 			s.value = trueValue
 		} else {
 			s.value = falseValue
@@ -179,7 +203,8 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			s.value = NewVoid()
 			return err
 		}
-		if !l.args[1].(*Number).lt(l.args[0].(*Number)) {
+		lhs, rhs := l.args[0].(*Number), l.args[1].(*Number)
+		if !rhs.lt(lhs) {
 			s.value = trueValue
 		} else {
 			s.value = falseValue
@@ -201,8 +226,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 				s.value = falseValue
 			}
 		} else {
-			lhs := l.args[0].(*String)
-			rhs := l.args[1].(*String)
+			lhs, rhs := l.args[0].(*String), l.args[1].(*String)
 			if lhs.Value == rhs.Value {
 				s.value = trueValue
 			} else {
@@ -226,8 +250,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 				s.value = falseValue
 			}
 		} else {
-			lhs := l.args[0].(*String)
-			rhs := l.args[1].(*String)
+			lhs, rhs := l.args[0].(*String), l.args[1].(*String)
 			if lhs.Value != rhs.Value {
 				s.value = trueValue
 			} else {
@@ -413,7 +436,7 @@ func (s *state) VisitLetrecNode(n *ast.LetrecNode) *file.Error {
 		v := n.VarExprList[l.pc-2].Variable
 		lastLocation := lookupEnv(v.Name, *l.env)
 		if lastLocation == -1 {
-			panic("this should not happened. panic for testing.") // TODO
+			panic("this should not happened. panic for testing.")
 		}
 		s.heap[lastLocation] = s.value // update value location?
 	}

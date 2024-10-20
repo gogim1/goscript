@@ -2,9 +2,9 @@ package runtime
 
 import (
 	"fmt"
-	"math"
 	"reflect"
 	"strconv"
+	"sync/atomic"
 
 	"github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/file"
@@ -13,11 +13,14 @@ import (
 type Value interface {
 	GetLocation() int
 	SetLocation(int)
+	GetId() int64
+	SetId(int64)
 	String() string
 }
 
 type Base struct {
 	Location int
+	Id       int64
 }
 
 func (n *Base) GetLocation() int {
@@ -26,6 +29,14 @@ func (n *Base) GetLocation() int {
 
 func (n *Base) SetLocation(l int) {
 	n.Location = l
+}
+
+func (n *Base) GetId() int64 {
+	return n.Id
+}
+
+func (n *Base) SetId(i int64) {
+	n.Id = i
 }
 
 var (
@@ -45,12 +56,6 @@ func (v *Void) String() string {
 	return "<void>"
 }
 
-func NewVoid() *Void {
-	ret := &Void{}
-	ret.SetLocation(-1)
-	return ret
-}
-
 type Number struct {
 	Base
 	Numerator   int
@@ -64,51 +69,10 @@ func (v *Number) String() string {
 	return strconv.Itoa(v.Numerator) + "/" + strconv.Itoa(v.Denominator)
 }
 
-func (v *Number) add(other *Number) *Number {
-	n1 := v.Numerator*other.Denominator + other.Numerator*v.Denominator
-	d1 := v.Denominator * other.Denominator
-	g1 := gcd(int(math.Abs(float64(n1))), d1)
-	return NewNumber(n1/g1, d1/g1)
-}
-
-func (v *Number) sub(other *Number) *Number {
-	n1 := v.Numerator*other.Denominator - other.Numerator*v.Denominator
-	d1 := v.Denominator * other.Denominator
-	g1 := gcd(int(math.Abs(float64(n1))), d1)
-	return NewNumber(n1/g1, d1/g1)
-}
-
-func (v *Number) mul(other *Number) *Number {
-	n1 := v.Numerator * other.Numerator
-	d1 := v.Denominator * other.Denominator
-	g1 := gcd(int(math.Abs(float64(n1))), d1)
-	return NewNumber(n1/g1, d1/g1)
-}
-
-func (v *Number) div(other *Number) *Number {
-	n1 := v.Numerator * other.Denominator
-	d1 := v.Denominator * other.Numerator
-	if d1 < 0 {
-		n1 = -n1
-		d1 = -d1
-	}
-	g1 := gcd(int(math.Abs(float64(n1))), d1)
-	return NewNumber(n1/g1, d1/g1)
-}
-
 func (v *Number) lt(other *Number) bool {
 	lhs := v.Numerator * other.Denominator
 	rhs := v.Denominator * other.Numerator
 	return lhs < rhs
-}
-
-func NewNumber(n, d int) *Number {
-	ret := &Number{
-		Numerator:   n,
-		Denominator: d,
-	}
-	ret.SetLocation(-1)
-	return ret
 }
 
 var (
@@ -125,14 +89,6 @@ func (v *String) String() string {
 	return v.Value
 }
 
-func NewString(v string) *String {
-	ret := &String{
-		Value: v,
-	}
-	ret.SetLocation(-1)
-	return ret
-}
-
 type Closure struct {
 	Base
 	Env []envItem
@@ -141,15 +97,6 @@ type Closure struct {
 
 func (v *Closure) String() string {
 	return fmt.Sprintf("<closure evaluated at %s>", v.Fun.Location)
-}
-
-func NewClosure(env []envItem, fun *ast.LambdaNode) *Closure {
-	ret := &Closure{
-		Env: env,
-		Fun: fun,
-	}
-	ret.SetLocation(-1)
-	return ret
 }
 
 type Continuation struct {
@@ -162,11 +109,55 @@ func (v *Continuation) String() string {
 	return fmt.Sprintf("<continuation evaluated at %s>", v.SourceLocation)
 }
 
+var globalId int64 = 0
+
+func NewVoid() *Void {
+	ret := &Void{}
+	ret.SetLocation(-1)
+	id := atomic.AddInt64(&globalId, 1)
+	ret.SetId(id)
+	return ret
+}
+
+func NewNumber(n, d int) *Number {
+	ret := &Number{
+		Numerator:   n,
+		Denominator: d,
+	}
+	ret.SetLocation(-1)
+	id := atomic.AddInt64(&globalId, 1)
+	ret.SetId(id)
+	return ret
+}
+
+func NewString(v string) *String {
+	ret := &String{
+		Value: v,
+	}
+	ret.SetLocation(-1)
+	id := atomic.AddInt64(&globalId, 1)
+	ret.SetId(id)
+	return ret
+}
+
+func NewClosure(env []envItem, fun *ast.LambdaNode) *Closure {
+	ret := &Closure{
+		Env: env,
+		Fun: fun,
+	}
+	ret.SetLocation(-1)
+	id := atomic.AddInt64(&globalId, 1)
+	ret.SetId(id)
+	return ret
+}
+
 func NewContinuation(sl file.SourceLocation, stack []*layer) *Continuation {
 	ret := &Continuation{
 		SourceLocation: sl,
 		Stack:          stack,
 	}
 	ret.SetLocation(-1)
+	id := atomic.AddInt64(&globalId, 1)
+	ret.SetId(id)
 	return ret
 }
