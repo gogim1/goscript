@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/gogim1/goscript/ast"
+	"github.com/gogim1/goscript/conf"
 	"github.com/gogim1/goscript/file"
 	"github.com/gogim1/goscript/lexer"
 	"github.com/gogim1/goscript/parser"
@@ -55,7 +56,7 @@ func TestRuntime(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
-			state := NewState(lexAndParse(t, test.input))
+			state := NewState(lexAndParse(t, test.input), conf.New())
 			assert.Nil(t, state.Execute())
 			assert.Equal(t, test.value, state.Value().String())
 		})
@@ -104,7 +105,7 @@ func TestRuntime_error(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {
-			state := NewState(lexAndParse(t, test))
+			state := NewState(lexAndParse(t, test), conf.New())
 			err := state.Execute()
 			assert.NotNil(t, err)
 			assert.Equal(t, "<void>", state.Value().String())
@@ -128,7 +129,7 @@ func TestRuntimeInteraction(t *testing.T) {
 		}
 			`
 
-		state := runtime.NewState(lexAndParse(t, src))
+		state := runtime.NewState(lexAndParse(t, src), conf.New())
 		err := state.Execute()
 		require.Nil(t, err)
 
@@ -154,13 +155,14 @@ func TestRuntimeInteraction(t *testing.T) {
 	})
 
 	t.Run("call golang function", func(t *testing.T) {
+		conf := conf.New()
 		plus1 := func(args ...runtime.Value) runtime.Value {
 			arg := args[0].(*Number)
 			return runtime.NewNumber(arg.Numerator+arg.Denominator, arg.Numerator)
 		}
 
 		src := `(go "plus1" 1)`
-		state := runtime.NewState(lexAndParse(t, src)).Register("plus1", plus1)
+		state := runtime.NewState(lexAndParse(t, src), conf).Register("plus1", plus1)
 		assert.Nil(t, state.Execute())
 		assert.Equal(t, `2`, state.Value().String())
 
@@ -174,21 +176,21 @@ func TestRuntimeInteraction(t *testing.T) {
 			return runtime.NewString("string")
 		}
 		src = `(go "str")`
-		state = runtime.NewState(lexAndParse(t, src)).Register("str", str)
+		state = runtime.NewState(lexAndParse(t, src), conf).Register("str", str)
 		assert.Nil(t, state.Execute())
 		assert.Equal(t, `string`, state.Value().String())
 
-		state = runtime.NewState(lexAndParse(t, src)).Register("str", plus1).Register("str", str)
+		state = runtime.NewState(lexAndParse(t, src), conf).Register("str", plus1).Register("str", str)
 		assert.Nil(t, state.Execute())
 		assert.Equal(t, `string`, state.Value().String())
 
 		src = `(go "str" (go "plus1" 1))`
-		state = runtime.NewState(lexAndParse(t, src)).Register("plus1", plus1).Register("str", str)
+		state = runtime.NewState(lexAndParse(t, src), conf).Register("plus1", plus1).Register("str", str)
 		assert.Nil(t, state.Execute())
 		assert.Equal(t, `string`, state.Value().String())
 
 		src = `(go "unknown")`
-		state = runtime.NewState(lexAndParse(t, src))
+		state = runtime.NewState(lexAndParse(t, src), conf)
 		assert.NotNil(t, state.Execute())
 		assert.Equal(t, "<void>", state.Value().String())
 
@@ -255,7 +257,7 @@ func TestIntrinsics(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.input, func(t *testing.T) {
-			state := NewState(lexAndParse(t, test.input))
+			state := NewState(lexAndParse(t, test.input), conf.New())
 			assert.Nil(t, state.Execute())
 			assert.Equal(t, test.value, state.Value().String())
 		})

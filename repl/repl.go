@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/gogim1/goscript/conf"
 	"github.com/gogim1/goscript/file"
 	"github.com/gogim1/goscript/lexer"
 	"github.com/gogim1/goscript/parser"
@@ -39,7 +40,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	err = runtime.NewState(node).Execute()
+	err = runtime.NewState(node, conf.New()).Execute()
 	if err != nil {
 		fmt.Println(err)
 		return

@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/gogim1/goscript/ast"
+	"github.com/gogim1/goscript/conf"
 	"github.com/gogim1/goscript/file"
 	"github.com/gogim1/goscript/lexer"
 	"github.com/gogim1/goscript/parser"
@@ -24,7 +25,7 @@ func (s *state) restore(layers []*layer) {
 	deepcopy(&s.stack, layers)
 }
 
-func run(src string) (Value, *file.Error) {
+func run(src string, conf *conf.Config) (Value, *file.Error) {
 	tokens, err := lexer.Lex(file.NewSource(src))
 	if err != nil {
 		return nil, err
@@ -35,7 +36,7 @@ func run(src string) (Value, *file.Error) {
 		return nil, err
 	}
 
-	state := NewState(node)
+	state := NewState(node, conf)
 	if err = state.Execute(); err != nil {
 		return nil, err
 	}
@@ -353,7 +354,7 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			s.value = voidValue
 			return err
 		}
-		v, err := run(l.args[0].(*String).String())
+		v, err := run(l.args[0].(*String).String(), s.config)
 		if err != nil {
 			return err
 		} else {

@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"github.com/gogim1/goscript/ast"
+	"github.com/gogim1/goscript/conf"
 	"github.com/gogim1/goscript/file"
 )
 
@@ -23,15 +24,17 @@ type layer struct {
 
 type state struct {
 	collector
-	value Value
-	stack []*layer
-	heap  []Value
-	ffi   map[string]func(...Value) Value
+	config *conf.Config
+	value  Value
+	stack  []*layer
+	heap   []Value
+	ffi    map[string]func(...Value) Value
 }
 
-func NewState(expr ast.ExprNode) *state {
+func NewState(expr ast.ExprNode, config *conf.Config) *state {
 	env := new([]envItem)
 	s := &state{
+		config: config,
 		stack: []*layer{
 			{env: env, expr: nil, frame: true},
 			{env: env, expr: expr},
@@ -53,15 +56,18 @@ func (s *state) Execute() *file.Error {
 	for {
 		l := s.stack[len(s.stack)-1]
 		if l.expr == nil {
-			return nil
+			break
 		}
 
 		err := l.expr.Accept(s)
 		if err != nil {
 			return err
 		}
-		s.gc()
+		if s.config.GCTrigger() {
+			s.gc()
+		}
 	}
+	return nil
 }
 
 func (s *state) Call(name string, args ...any) (Value, *file.Error) {

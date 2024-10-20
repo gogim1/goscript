@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/gogim1/goscript/conf"
 	"github.com/gogim1/goscript/file"
 	"github.com/gogim1/goscript/lexer"
 	"github.com/gogim1/goscript/parser"
@@ -30,7 +31,7 @@ letrec (
 		fmt.Println(err)
 		return
 	}
-	state := runtime.NewState(node)
+	state := runtime.NewState(node, conf.New())
 	err = state.Execute()
 	if err != nil {
 		fmt.Println(err)
@@ -74,7 +75,7 @@ letrec (s = (go "concat" "hello" " " "world")) {
 		fmt.Println(err)
 		return
 	}
-	err = runtime.NewState(node).Register("concat", concat).Execute()
+	err = runtime.NewState(node, conf.New()).Register("concat", concat).Execute()
 	if err != nil {
 		fmt.Println(err)
 		return
