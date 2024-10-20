@@ -5,6 +5,8 @@ import (
 	"github.com/gogim1/goscript/file"
 )
 
+//go:generate sh -c "go run ./helpers > ./constants_generated.go"
+
 type envItem struct {
 	name     string
 	location int
