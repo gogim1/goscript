@@ -368,6 +368,12 @@ func (p *parser) parseAccess() (*AccessNode, *file.Error) {
 	if err != nil {
 		return nil, err
 	}
+	if variable.Kind != Lexical {
+		return nil, &file.Error{
+			Location: variable.Location,
+			Message:  "non-lexical variable access applied",
+		}
+	}
 	expr, err := p.parseExpr()
 	if err != nil {
 		return nil, err

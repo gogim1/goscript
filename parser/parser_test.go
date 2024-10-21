@@ -265,8 +265,12 @@ func TestParse_error(t *testing.T) {
 			`(`,
 		},
 		{
-			"incorrect access",
+			"incorrect access #1",
 			`&letrec`,
+		},
+		{
+			"incorrect access #2",
+			`&Y l`,
 		},
 	}
 	for _, test := range tests {

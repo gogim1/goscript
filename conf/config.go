@@ -5,9 +5,12 @@ type Config struct {
 	EnableTCO bool
 }
 
-func New() *Config {
+func New(opts ...Option) *Config {
 	c := &Config{
 		GCTrigger: func() bool { return true },
+	}
+	for _, opt := range opts {
+		opt(c)
 	}
 	return c
 }
