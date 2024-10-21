@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/gogim1/goscript/conf"
 	"github.com/gogim1/goscript/file"
@@ -10,39 +11,27 @@ import (
 	"github.com/gogim1/goscript/runtime"
 )
 
+var counter = 0
+
+func trigger() bool {
+	counter++
+	return counter%1000 == 0
+}
+
 func main() {
-	tokens, err := lexer.Lex(file.NewSource(`
-	letrec (
-		loop = lambda (s) {
-		  letrec (
-			line = [
-			  (put "> ") 
-			  (getline)
-			  ]
-		  ) {
-			if (ne line "exit") then [
-			  (put (eval line) "\n")
-			  (loop (concat (concat (concat s "> ") line) "\n"))
-			  ]
-			else (put "Bye. Your input history:\n" s)
-		  }
-		}
-	  ) {
-		(loop "")
-	  }
-`))
+	bytes, err := os.ReadFile("./examples/repl.txt")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	node, err := parser.Parse(tokens)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	err = runtime.NewState(node, conf.New()).Execute()
-	if err != nil {
-		fmt.Println(err)
+	tokens, _ := lexer.Lex(file.NewSource(string(bytes)))
+	node, _ := parser.Parse(tokens)
+	e := runtime.NewState(node, conf.New(
+		conf.SetGCTrigger(trigger),
+		conf.EnableTCO(false),
+	)).Execute()
+	if e != nil {
+		fmt.Println(e)
 		return
 	}
 }

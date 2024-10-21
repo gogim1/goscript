@@ -1,0 +1,18 @@
+letrec (
+  loop = lambda (s) {
+    letrec (
+      line = [
+        (put "> ") 
+        (getline)
+      ]
+    ) {
+      if (ne line "exit") then [
+        (put (eval line) "\n")
+        (loop (concat (concat (concat s "> ") line) "\n"))
+      ] else 
+        (put "Bye. Your input history:\n" s)
+    }
+  }
+) {
+  (loop "")
+}
