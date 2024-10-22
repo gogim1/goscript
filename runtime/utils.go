@@ -14,10 +14,14 @@ func gcd(x, y int) int {
 	return x
 }
 
+func isLexical(str string) bool {
+	return len(str) > 0 && unicode.IsLower([]rune(str)[0])
+}
+
 func filterLexical(env []envItem) []envItem {
 	newEnv := []envItem{}
 	for _, item := range env {
-		if len(item.name) > 0 && unicode.IsLower([]rune(item.name)[0]) {
+		if isLexical(item.name) {
 			newEnv = append(newEnv, item)
 		}
 	}

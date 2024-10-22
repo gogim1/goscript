@@ -28,7 +28,7 @@ func main() {
 	node, _ := parser.Parse(tokens)
 	e := runtime.NewState(node, conf.New(
 		conf.SetGCTrigger(trigger),
-		conf.EnableTCO(false),
+		conf.EnableTCO(true),
 	)).Execute()
 	if e != nil {
 		fmt.Println(e)

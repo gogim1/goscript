@@ -579,6 +579,12 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 					for !s.stack[len(s.stack)-1].frame {
 						s.stack = s.stack[:len(s.stack)-1]
 					}
+					s.stack = s.stack[:len(s.stack)-1]
+					for _, item := range *l.env {
+						if !isLexical(item.name) {
+							env = append(env, item)
+						}
+					}
 				}
 				s.stack = append(s.stack, &layer{
 					env:   &env,

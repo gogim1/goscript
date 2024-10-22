@@ -5,7 +5,7 @@ letrec (
         F = lambda () { 1 }
         G = lambda () { 2 }
       ) {
-        letrec (r = (call)) { r } # avoid tail call optimization
+        (call)
       }
     }
   }
@@ -15,8 +15,9 @@ letrec (
         (base
           lambda () {
             letrec (F = lambda () { 100 } # override F
-          ) {
-            letrec (r = (call)) { r } } # avoid tail call optimization
+            ) {
+              (call) 
+            }
           }
         )
       }
