@@ -103,6 +103,8 @@ func TestRuntime_error(t *testing.T) {
 		`(concat 1 2)`,
 		`&v lambda () { 1 }`,
 		`&v "string"`,
+		`[(reg "c" lambda () {1}) (c)]`,
+		`(lambda () {[(reg "c" lambda () {1}) (c)]})`,
 	}
 	for _, test := range tests {
 		t.Run(test, func(t *testing.T) {
@@ -123,9 +125,9 @@ func TestRuntimeInteraction(t *testing.T) {
 		) {
 			[
 				(reg "test0" lambda(){ v })
-				(reg "test1" lambda(v){ v })
-				(reg "test1" lambda(v){ (add v 1) })  # doesn't work
-				(reg "test2" lambda(v){ (add v 1) })  # v should be Number
+				(reg "test1" lambda(v){ (add v 1) })  
+				(reg "test1" lambda(v){ v })			# doesn't work
+				(reg "test2" lambda(v){ (add v 1) })  	# v should be Number
 			]
 		}
 			`

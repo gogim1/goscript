@@ -386,10 +386,11 @@ func (s *state) VisitIntrinsicNode(n *ast.IntrinsicNode) *file.Error {
 			s.value = voidValue
 			return err
 		}
-		*(s.stack[0].env) = append([]envItem{{
+		// TODO: only lexical variable to be allowed.
+		*(s.stack[0].env) = append(*(s.stack[0].env), envItem{
 			name:     l.args[0].(*String).Value,
 			location: s.new(l.args[1]),
-		}}, *(s.stack[0].env)...)
+		})
 		s.value = voidValue
 	case "go":
 		if len(l.args) == 0 || reflect.TypeOf(l.args[0]).Elem() != StringType {

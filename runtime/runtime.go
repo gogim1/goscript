@@ -16,6 +16,7 @@ type envItem struct {
 type layer struct {
 	env    *[]envItem
 	frame  bool
+	tail   bool
 	expr   ast.ExprNode
 	pc     int
 	args   []Value
@@ -32,12 +33,11 @@ type state struct {
 }
 
 func NewState(expr ast.ExprNode, config *conf.Config) *state {
-	env := new([]envItem)
 	s := &state{
 		config: config,
 		stack: []*layer{
-			{env: env, expr: nil, frame: true},
-			{env: env, expr: expr},
+			{env: new([]envItem), expr: nil, frame: true},
+			{env: new([]envItem), expr: expr, frame: true},
 		},
 		ffi: make(map[string]func(...Value) Value),
 	}
@@ -87,9 +87,13 @@ func (s *state) Call(name string, args ...any) (Value, *file.Error) {
 			}
 		}
 	}
+	env := make([]envItem, len(*(s.stack[0].env)))
+	copy(env, *(s.stack[0].env))
+
 	s.stack = append(s.stack, &layer{
-		env:  s.stack[0].env,
-		expr: ast.NewCallNode(sl, callee, argList),
+		env:   &env,
+		frame: true,
+		expr:  ast.NewCallNode(sl, callee, argList),
 	})
 
 	if err := s.Execute(); err != nil {
