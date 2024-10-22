@@ -26,19 +26,25 @@ type collector struct {
 }
 
 func (c *collector) traverse(value Value, visitor func(Value)) {
-	if _, visited := c.values[value.GetId()]; !visited {
-		if visitor != nil {
-			visitor(value)
-		}
-		c.values[value.GetId()] = struct{}{}
-		if closure, ok := value.(*Closure); ok {
+	if closure, ok := value.(*Closure); ok {
+		if _, visited := c.values[value.GetId()]; !visited {
+			if visitor != nil {
+				visitor(value)
+			}
+			c.values[value.GetId()] = struct{}{}
 			for _, item := range closure.Env {
 				if _, visited := c.locations[item.location]; !visited {
 					c.locations[item.location] = struct{}{}
 					c.traverse(c.heap[item.location], visitor)
 				}
 			}
-		} else if continuation, ok := value.(*Continuation); ok {
+		}
+	} else if continuation, ok := value.(*Continuation); ok {
+		if _, visited := c.values[value.GetId()]; !visited {
+			if visitor != nil {
+				visitor(value)
+			}
+			c.values[value.GetId()] = struct{}{}
 			for _, layer := range continuation.Stack {
 				if layer.frame {
 					for _, item := range *layer.env {
