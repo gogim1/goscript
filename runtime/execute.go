@@ -575,7 +575,7 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 						location: s.new(l.args[i]),
 					})
 				}
-				if l.frame || l.tail {
+				if s.config.EnableTCO && (l.frame || l.tail) {
 					for !s.stack[len(s.stack)-1].frame {
 						s.stack = s.stack[:len(s.stack)-1]
 					}
