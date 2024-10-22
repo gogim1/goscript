@@ -42,6 +42,7 @@ func TestRuntime(t *testing.T) {
 		{`letrec (a=1 b=a) { b }`, `1`},
 		{`letrec (a=1 b=lambda() {c} c=2 ) { (b) }`, `2`},
 		{`letrec (A=2 c=lambda() {A}) { (c) }`, `2`},
+		{`letrec (a = lambda() { letrec (A=2 c=lambda() {A}) { (c) } }) { (a) }`, `2`},
 		{`lambda () {1}`, `<closure evaluated at (SourceLocation 1 1)>`},
 		{`(lambda () {1})`, `1`},
 		{`(lambda (a b) {a} 1 2)`, `1`},

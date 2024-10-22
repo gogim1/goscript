@@ -475,6 +475,7 @@ func (s *state) VisitLetrecNode(n *ast.LetrecNode) *file.Error {
 	} else if l.pc == len(n.VarExprList)+1 {
 		s.stack = append(s.stack, &layer{
 			env:  l.env,
+			tail: l.frame || l.tail,
 			expr: n.Expr,
 		})
 		l.pc++
@@ -502,7 +503,8 @@ func (s *state) VisitIfNode(n *ast.IfNode) *file.Error {
 			}
 		} else {
 			newLayer := &layer{
-				env: l.env,
+				env:  l.env,
+				tail: l.frame || l.tail,
 			}
 			if v.Numerator != 0 {
 				newLayer.expr = n.Branch1
@@ -572,6 +574,11 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 						location: s.new(l.args[i]),
 					})
 				}
+				if l.frame || l.tail {
+					for !s.stack[len(s.stack)-1].frame {
+						s.stack = s.stack[:len(s.stack)-1]
+					}
+				}
 				s.stack = append(s.stack, &layer{
 					env:   &env,
 					frame: true,
@@ -596,9 +603,16 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 
 func (s *state) VisitSequenceNode(n *ast.SequenceNode) *file.Error {
 	l := s.stack[len(s.stack)-1]
-	if l.pc < len(n.ExprList) {
+	if l.pc < len(n.ExprList)-1 {
 		s.stack = append(s.stack, &layer{
 			env:  l.env,
+			expr: n.ExprList[l.pc],
+		})
+		l.pc++
+	} else if l.pc == len(n.ExprList)-1 {
+		s.stack = append(s.stack, &layer{
+			env:  l.env,
+			tail: l.frame || l.tail,
 			expr: n.ExprList[l.pc],
 		})
 		l.pc++
