@@ -4,16 +4,21 @@ letrec (
       letrec (
         F = lambda () { 1 }
         G = lambda () { 2 }
-      ) { (call) }
+      ) {
+        letrec (r = (call)) { r } # avoid tail call optimization
+      }
     }
   }
   makeDerived = lambda () {
-    lambda (call) {
-      letrec (
-        base = (makeBase)       # reuse the base class (inheritance)
-        F = lambda () { 100 }   # override F
-      ) { 
-        (base call)
+    letrec (base = (makeBase)) { # reuse the base class (inheritance)
+      lambda (call) {
+        (base
+          lambda () {
+            letrec (F = lambda () { 100 } # override F
+          ) {
+            letrec (r = (call)) { r } } # avoid tail call optimization
+          }
+        )
       }
     }
   }
