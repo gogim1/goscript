@@ -29,6 +29,7 @@ func main() {
 	e := runtime.NewState(node, conf.New(
 		conf.SetGCTrigger(trigger),
 		conf.EnableTCO(true),
+		conf.EnableDebug(false),
 	)).Execute()
 	if e != nil {
 		fmt.Println(e)

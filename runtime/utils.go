@@ -1,7 +1,9 @@
 package runtime
 
 import (
+	"fmt"
 	"reflect"
+	"runtime"
 	"unicode"
 
 	"github.com/gogim1/goscript/file"
@@ -87,4 +89,19 @@ func typeCheck(sl file.SourceLocation, values []Value, types []reflect.Type) *fi
 		}
 	}
 	return nil
+}
+
+// printMemUsage outputs the current, total and OS memory being used. As well as the number
+// of garage collection cycles completed.
+func printMemUsage() {
+	bToMb := func(b uint64) uint64 {
+		return b / 1024 / 1024
+	}
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
+	fmt.Printf("[DEBUG] Alloc = %v MiB", bToMb(m.Alloc))
+	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
+	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
+	fmt.Printf("\tNumGC = %v\n", m.NumGC)
 }

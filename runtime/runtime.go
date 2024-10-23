@@ -67,6 +67,9 @@ func (s *state) Execute() *file.Error {
 			s.gc()
 		}
 	}
+	if s.config.EnableDebug {
+		printMemUsage()
+	}
 	return nil
 }
 
