@@ -569,6 +569,22 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 				env := make([]envItem, len(closure.Env))
 				copy(env, closure.Env)
 
+				if s.config.EnableTCO && (l.frame || l.tail) {
+					for _, old := range *l.env {
+						if !isLexical(old.name) {
+							overlap := false
+							for _, new := range closure.Fun.VarList {
+								if new.Name == old.name {
+									overlap = true
+									break
+								}
+							}
+							if !overlap {
+								env = append(env, old)
+							}
+						}
+					}
+				}
 				for i, v := range closure.Fun.VarList {
 					env = append(env, envItem{
 						name:     v.Name,
@@ -580,11 +596,6 @@ func (s *state) VisitCallNode(n *ast.CallNode) *file.Error {
 						s.stack = s.stack[:len(s.stack)-1]
 					}
 					s.stack = s.stack[:len(s.stack)-1]
-					for _, item := range *l.env {
-						if !isLexical(item.name) {
-							env = append(env, item)
-						}
-					}
 				}
 				s.stack = append(s.stack, &layer{
 					env:   &env,
