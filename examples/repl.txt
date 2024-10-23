@@ -1,18 +1,17 @@
 letrec (
-  loop = lambda (s) {
+  prompt = [
+    (put "  ___  _____  ___   ___  ____  ____  ____  ____  " "\n")
+    (put " / __)(  _  )/ __) / __)(  _ \\(_  _)(  _ \\(_  _) " "\n")
+    (put "( (_-. )(_)( \\__ \\( (__  )   / _)(_  )___/  )(    " "\n")
+    (put " \\___/(_____)(___/ \\___)(_)\\_)(____)(__)   (__)" " Hopes you have a `SUGOI` day!\n")
+  ]
+  loop = lambda () {
     letrec (
-      line = [
-        (put "> ") 
-        (getline)
-      ]
+      line = [(put "> ") (getline)]
     ) {
-      if (ne line "exit") then [
-        (put (eval line) "\n")
-        (loop (concat (concat (concat s "> ") line) "\n"))
-      ] else 
-        (put "Bye. Your input history:\n" s)
+      [(put (eval line) "\n") (loop)]
     }
   }
 ) {
-  (loop "")
+  (loop)
 }
