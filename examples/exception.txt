@@ -7,21 +7,25 @@ letrec (
       else [(catch cc) (finally)]
     }
   }
-) {
-    (try 
-      lambda (throw) {[
-        (put "enter `try` block\n") 
-        (throw "message")
-        (put "exit `try` block\n") 
-      ]} 
-      lambda (exception) {[ 
-        (put "enter `catch` block\n" )
-        (put "Exception: " exception "\n" )
-        (put "exit `catch` block\n" )
-      ]} 
-      lambda () {[
-        (put "enter `finally` block\n") 
-        (put "exit `finally` block\n") 
-      ]}
-    )
+  body = lambda (v) {(
+    try
+    lambda (throw) {[
+      (put "enter `try` block\n") 
+      if (eq v 0) then (throw "message") else (void)
+      (put "exit `try` block\n") 
+    ]} 
+    lambda (exception) {[ 
+      (put "enter `catch` block\n" )
+      (put "Exception: " exception "\n" )
+      (put "exit `catch` block\n" )
+    ]} 
+    lambda () {[
+      (put "enter `finally` block\n") 
+      (put "exit `finally` block\n") 
+    ]}
+  )}
+) {[
+    (body 0)
+    (body 1)
+  ]
 }

@@ -8,5 +8,5 @@ letrec (
     else [(put x "\n") (f (sub x 1))]
   }
 ) {
-  (f 10000)
+  (f 5)
 }

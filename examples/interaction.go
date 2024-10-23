@@ -1,4 +1,4 @@
-package main
+package examples
 
 import (
 	"fmt"
@@ -11,16 +11,14 @@ import (
 )
 
 // call goscript function from golang
-func func1() {
+func CallGoscript() {
 	tokens, err := lexer.Lex(file.NewSource(`
 letrec (
   v = 1
-) {
-    [
-      (reg "test0" lambda(){ v })
-      (reg "test1" lambda(v){ (put v "\n") })
-    ]
-}
+) {[
+    (reg "test0" lambda(){ v })
+    (reg "test1" lambda(v){ (put v "\n") })
+]}
 	`))
 	if err != nil {
 		fmt.Println(err)
@@ -60,7 +58,7 @@ func concat(args ...runtime.Value) runtime.Value {
 }
 
 // call golang function from goscript
-func func2() {
+func CallGolang() {
 	tokens, err := lexer.Lex(file.NewSource(`
 letrec (s = (go "concat" "hello" " " "world")) {
   (put s "\n")
@@ -80,9 +78,4 @@ letrec (s = (go "concat" "hello" " " "world")) {
 		fmt.Println(err)
 		return
 	}
-}
-
-func main() {
-	func1()
-	func2()
 }
