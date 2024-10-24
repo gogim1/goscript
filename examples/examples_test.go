@@ -41,7 +41,7 @@ var gConf = conf.New(
 )
 
 func Example_binaryTree() {
-	err := run("./binary-tree.txt", gConf)
+	err := run("./binary-tree.gs", gConf)
 	if err != nil {
 		fmt.Printf("err: %v", err)
 		return
@@ -56,7 +56,7 @@ func Example_binaryTree() {
 }
 
 func Example_coroutines() {
-	err := run("./coroutines.txt", gConf)
+	err := run("./coroutines.gs", gConf)
 	if err != nil {
 		fmt.Printf("err: %v", err)
 		return
@@ -72,7 +72,7 @@ func Example_coroutines() {
 }
 
 func Example_exception() {
-	err := run("./exception.txt", gConf)
+	err := run("./exception.gs", gConf)
 	if err != nil {
 		fmt.Printf("err: %v", err)
 		return
@@ -92,7 +92,7 @@ func Example_exception() {
 }
 
 func Example_list() {
-	err := run("./list.txt", gConf)
+	err := run("./list.gs", gConf)
 	if err != nil {
 		fmt.Printf("err: %v", err)
 		return
@@ -107,7 +107,7 @@ func Example_list() {
 }
 
 func Example_multi_stage() {
-	err := run("./multi-stage.txt", gConf)
+	err := run("./multi-stage.gs", gConf)
 	if err != nil {
 		fmt.Printf("err: %v", err)
 		return
@@ -120,7 +120,7 @@ func Example_multi_stage() {
 }
 
 func Example_mutual_recursion() {
-	err := run("./mutual-recursion.txt", gConf)
+	err := run("./mutual-recursion.gs", gConf)
 	if err != nil {
 		fmt.Printf("err: %v", err)
 		return
@@ -136,7 +136,7 @@ func Example_mutual_recursion() {
 }
 
 func Example_oop() {
-	err := run("./oop.txt", gConf)
+	err := run("./oop.gs", gConf)
 	if err != nil {
 		fmt.Printf("err: %v", err)
 		return
@@ -150,7 +150,7 @@ func Example_oop() {
 }
 
 func Example_scope() {
-	err := run("./scope.txt", gConf)
+	err := run("./scope.gs", gConf)
 	if err != nil {
 		fmt.Printf("err: %v", err)
 		return
@@ -162,7 +162,7 @@ func Example_scope() {
 }
 
 func Example_values() {
-	err := run("./values.txt", gConf)
+	err := run("./values.gs", gConf)
 	if err != nil {
 		fmt.Printf("err: %v", err)
 		return
@@ -177,7 +177,7 @@ func Example_values() {
 }
 
 func Example_y_combinator() {
-	err := run("./y-combinator.txt", gConf)
+	err := run("./y-combinator.gs", gConf)
 	if err != nil {
 		fmt.Printf("err: %v", err)
 		return

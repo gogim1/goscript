@@ -19,7 +19,7 @@ func trigger() bool {
 }
 
 func main() {
-	bytes, err := os.ReadFile("./examples/repl.txt")
+	bytes, err := os.ReadFile("./examples/repl.gs")
 	if err != nil {
 		fmt.Println(err)
 		return

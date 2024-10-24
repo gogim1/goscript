@@ -1,6 +1,8 @@
 package runtime
 
 import (
+	"fmt"
+
 	"github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/conf"
 	"github.com/gogim1/goscript/file"
@@ -64,7 +66,10 @@ func (s *state) Execute() *file.Error {
 			return err
 		}
 		if s.config.GCTrigger() {
-			s.gc()
+			n := s.gc()
+			if s.config.EnableDebug {
+				fmt.Printf("[DEBUG] GC collect %d cells\n", n)
+			}
 		}
 	}
 	if s.config.EnableDebug {
