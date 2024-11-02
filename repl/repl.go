@@ -30,6 +30,7 @@ func main() {
 		conf.SetGCTrigger(trigger),
 		conf.EnableTCO(true),
 		conf.EnableDebug(false),
+		conf.UseStd(true),
 	)).Execute()
 	if e != nil {
 		fmt.Println(e)

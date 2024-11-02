@@ -4,6 +4,7 @@ type Config struct {
 	GCTrigger   func() bool
 	EnableTCO   bool
 	EnableDebug bool
+	UseStd      bool
 }
 
 func New(opts ...Option) *Config {
@@ -19,6 +20,12 @@ func New(opts ...Option) *Config {
 }
 
 type Option func(c *Config)
+
+func UseStd(use bool) Option {
+	return func(c *Config) {
+		c.UseStd = use
+	}
+}
 
 func EnableDebug(enable bool) Option {
 	return func(c *Config) {

@@ -2,10 +2,12 @@ package runtime
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/gogim1/goscript/ast"
 	"github.com/gogim1/goscript/conf"
 	"github.com/gogim1/goscript/file"
+	"github.com/gogim1/goscript/stdlib"
 )
 
 //go:generate sh -c "go run ./helpers > ./constants_generated.go"
@@ -39,7 +41,6 @@ func NewState(expr ast.ExprNode, config *conf.Config) *state {
 		config: config,
 		stack: []*layer{
 			{env: new([]envItem), expr: nil, frame: true},
-			{env: new([]envItem), expr: expr, frame: true},
 		},
 		ffi: make(map[string]func(...Value) Value),
 	}
@@ -47,7 +48,33 @@ func NewState(expr ast.ExprNode, config *conf.Config) *state {
 	s.collector.values = make(map[int64]struct{})
 	s.collector.locations = make(map[int]struct{})
 	s.collector.relocation = make(map[int]int)
+
+	if config.UseStd {
+		for _, filepath := range stdlib.Paths {
+			bytes, err := os.ReadFile(filepath)
+			if err != nil {
+				fmt.Printf("[WARN] cannot find stdlib `%s`\n", filepath)
+				continue
+			}
+			node, e := lexAndParse(string(bytes))
+			if e != nil {
+				panic(fmt.Sprintf("[ERROR] load stdlib `%s` failed\n", filepath))
+			}
+			s.load(node)
+			if e := s.Execute(); e != nil {
+				panic(fmt.Sprintf("[ERROR] load stdlib `%s` failed\n", filepath))
+			}
+		}
+		s.gc()
+	}
+	s.load(expr)
 	return s
+}
+
+func (s *state) load(expr ast.ExprNode) {
+	env := make([]envItem, len(*(s.stack[0].env)))
+	copy(env, *(s.stack[0].env))
+	s.stack = append(s.stack, &layer{env: &env, expr: expr, frame: true})
 }
 
 func (s *state) Value() Value {

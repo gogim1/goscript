@@ -25,7 +25,7 @@ func (s *state) restore(layers []*layer) {
 	deepcopy(&s.stack, layers)
 }
 
-func run(src string, conf *conf.Config) (Value, *file.Error) {
+func lexAndParse(src string) (ast.ExprNode, *file.Error) {
 	tokens, err := lexer.Lex(file.NewSource(src))
 	if err != nil {
 		return nil, err
@@ -35,7 +35,14 @@ func run(src string, conf *conf.Config) (Value, *file.Error) {
 	if err != nil {
 		return nil, err
 	}
+	return node, nil
+}
 
+func run(src string, conf *conf.Config) (Value, *file.Error) {
+	node, err := lexAndParse(src)
+	if err != nil {
+		return nil, err
+	}
 	state := NewState(node, conf)
 	if err = state.Execute(); err != nil {
 		return nil, err
